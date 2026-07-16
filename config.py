@@ -14,10 +14,8 @@ load_dotenv(BASE_DIR / ".env")
 class Config:
     """Base configuration for the local Caregiver Management System."""
 
-    SECRET_KEY = os.getenv("SECRET_KEY", "change-this-local-development-key")
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        "DATABASE_URL", f"sqlite:///{BASE_DIR / 'database' / 'caregivers.db'}"
-    )
+    SECRET_KEY = os.getenv("SECRET_KEY") or os.getenv("SESSION_SECRET", "change-this-local-development-key")
+    SQLALCHEMY_DATABASE_URI = f"sqlite:///{BASE_DIR / 'database' / 'caregivers.db'}"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     UPLOAD_FOLDER = str(BASE_DIR / "uploads")
     MAX_CONTENT_LENGTH = int(os.getenv("MAX_UPLOAD_MB", "25")) * 1024 * 1024

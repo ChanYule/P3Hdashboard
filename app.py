@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
 
 from config import BASE_DIR, Config
 from database import init_database
@@ -29,6 +29,22 @@ def create_app() -> Flask:
     init_database(app)
     for blueprint in (dashboard_bp, caregivers_bp, upload_bp, alerts_bp, recommendations_bp):
         app.register_blueprint(blueprint)
+
+    _STATIC_FILES = {"index.html", "style.css", "script.js"}
+    _STATIC_DIRS = {"assets", "icons", "images"}
+
+    @app.route("/")
+    def index():
+        return send_from_directory(BASE_DIR, "index.html")
+
+    @app.route("/<path:filename>")
+    def static_files(filename):
+        # Only serve known frontend files and asset directories; block everything else.
+        top = filename.split("/")[0]
+        if filename in _STATIC_FILES or top in _STATIC_DIRS:
+            return send_from_directory(BASE_DIR, filename)
+        return jsonify({"error": "Not found."}), 404
+
     _register_error_handlers(app)
     _start_scheduler(app)
     with app.app_context():
@@ -70,4 +86,4 @@ def _register_error_handlers(app: Flask) -> None:
 app = create_app()
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=5000, debug=False)
