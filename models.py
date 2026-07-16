@@ -6,6 +6,8 @@ import json
 from datetime import date, datetime
 from typing import Any
 
+from werkzeug.security import check_password_hash, generate_password_hash
+
 from database import db
 
 
@@ -71,3 +73,48 @@ class Caregiver(db.Model):
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
         }
+
+
+class User(db.Model):
+    """An authenticated user of the system."""
+
+    __tablename__ = "users"
+
+    id = db.Column(db.Integer, primary_key=True)
+    full_name = db.Column(db.String(255), nullable=False)
+    username = db.Column(db.String(150), unique=True, nullable=False, index=True)
+    email = db.Column(db.String(255), unique=True, nullable=False)
+    password_hash = db.Column(db.String(512), nullable=False)
+    role = db.Column(db.String(50), nullable=False, default="Care Coordinator")
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    last_login = db.Column(db.DateTime, nullable=True)
+
+    def set_password(self, password: str) -> None:
+        """Hash and store the password using Werkzeug."""
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password: str) -> bool:
+        """Verify a plaintext password against the stored hash."""
+        return check_password_hash(self.password_hash, password)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize this user for JSON responses (no password hash)."""
+        return {
+            "id": self.id,
+            "full_name": self.full_name,
+            "username": self.username,
+            "email": self.email,
+            "role": self.role,
+            "created_at": self.created_at.isoformat(),
+            "last_login": self.last_login.isoformat() if self.last_login else None,
+        }
+
+
+class Setting(db.Model):
+    """A persistent application setting stored as a key-value pair."""
+
+    __tablename__ = "settings"
+
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    value = db.Column(db.Text, nullable=True)

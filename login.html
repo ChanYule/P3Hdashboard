@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login – CareCircle</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{--green:#2e7d6b;--teal:#4db6ac;--ink:#18342e;--muted:#6c7d78;--line:#e6ecea;--bg:#f7f9fb;--white:#fff;--shadow:0 4px 18px rgba(23,55,48,.07)}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);font:14px/1.5 "DM Sans",sans-serif;color:var(--ink);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+    button,input{font:inherit}button{cursor:pointer}
+    .auth-card{background:var(--white);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);width:100%;max-width:400px;padding:40px 36px}
+    .brand{display:flex;gap:11px;align-items:center;margin-bottom:32px;text-decoration:none;color:var(--ink)}
+    .brand-mark{width:36px;height:36px;display:grid;place-items:center;border-radius:10px;color:#fff;background:var(--green);font:800 20px Manrope}
+    .brand span{font:700 18px Manrope}
+    .brand small{display:block;font:500 10px "DM Sans";letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+    h1{font:800 22px Manrope;margin:0 0 6px}
+    .sub{color:var(--muted);font-size:13px;margin:0 0 28px}
+    label{display:grid;gap:6px;font-size:11px;font-weight:700;color:#527067;margin-bottom:16px}
+    input[type=text],input[type=email],input[type=password]{height:42px;border:1px solid var(--line);border-radius:8px;padding:0 12px;width:100%;outline:0;color:var(--ink);transition:.15s}
+    input:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(46,125,107,.12)}
+    .remember{display:flex;align-items:center;gap:8px;margin-bottom:22px;font-size:13px;color:var(--muted)}
+    .remember input{width:16px;height:16px;accent-color:var(--green)}
+    .button{border:1px solid var(--green);background:var(--green);color:#fff;height:42px;border-radius:8px;padding:0 18px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;font-size:14px}
+    .button:hover{background:#246b5a}
+    .forgot{border:0;background:0;color:var(--green);font-size:12px;font-weight:700;padding:0;cursor:pointer;margin-left:auto;display:block;text-align:right;margin-bottom:20px}
+    .divider{text-align:center;color:var(--muted);font-size:12px;margin:22px 0;position:relative}
+    .divider:before{content:"";position:absolute;top:50%;left:0;right:0;height:1px;background:var(--line)}
+    .divider span{background:var(--white);position:relative;padding:0 10px}
+    .link-row{text-align:center;font-size:13px;color:var(--muted)}
+    .link-row a{color:var(--green);font-weight:700;text-decoration:none}
+    .error-msg{background:#fde9e8;color:#bb4b43;font-size:12px;border-radius:7px;padding:10px 12px;margin-bottom:16px;display:none}
+    .error-msg.show{display:block}
+  </style>
+</head>
+<body>
+  <div class="auth-card">
+    <a class="brand" href="/login.html">
+      <div class="brand-mark">C</div>
+      <span>CareCircle<small>Care Management</small></span>
+    </a>
+    <h1>Welcome back</h1>
+    <p class="sub">Sign in to your care management workspace.</p>
+    <div class="error-msg" id="errorMsg"></div>
+    <form id="loginForm" autocomplete="on">
+      <label>Username<input type="text" name="username" id="username" autocomplete="username" required placeholder="Enter your username"></label>
+      <label>Password<input type="password" name="password" id="password" autocomplete="current-password" required placeholder="Enter your password"></label>
+      <div class="remember">
+        <input type="checkbox" id="rememberMe" name="remember_me">
+        <label for="rememberMe" style="display:inline;margin:0;font-weight:400;font-size:13px;color:var(--muted)">Remember me</label>
+        <button type="button" class="forgot" onclick="alert('Password reset will be available in a future update.')">Forgot password?</button>
+      </div>
+      <button class="button" type="submit" id="loginBtn">Sign in</button>
+    </form>
+    <div class="divider"><span>New to CareCircle?</span></div>
+    <div class="link-row"><a href="/signup.html">Create an account</a></div>
+  </div>
+  <script>
+    // If already logged in, redirect to app
+    fetch('/auth/me').then(r => { if (r.ok) location.href = '/'; });
+
+    document.getElementById('loginForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn = document.getElementById('loginBtn');
+      const err = document.getElementById('errorMsg');
+      btn.textContent = 'Signing in…';
+      btn.disabled = true;
+      err.classList.remove('show');
+      const body = {
+        username: document.getElementById('username').value.trim(),
+        password: document.getElementById('password').value,
+        remember_me: document.getElementById('rememberMe').checked,
+      };
+      try {
+        const res = await fetch('/auth/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        const data = await res.json();
+        if (res.ok) {
+          location.href = '/';
+        } else {
+          err.textContent = data.error || 'Login failed.';
+          err.classList.add('show');
+          btn.textContent = 'Sign in';
+          btn.disabled = false;
+        }
+      } catch {
+        err.textContent = 'Connection error. Please try again.';
+        err.classList.add('show');
+        btn.textContent = 'Sign in';
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

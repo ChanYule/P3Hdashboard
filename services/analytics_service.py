@@ -29,7 +29,7 @@ def _parse_json_list(value: str | None) -> list[str]:
 
 
 def _json_list_distribution(values: list[str | None]) -> dict[str, int]:
-    """Distribution from JSON-array text fields (hobbies, language, etc.)."""
+    """Distribution from JSON-array text fields (grants, language, etc.)."""
     items = [item for value in values for item in _parse_json_list(value)]
     return _distribution(items)
 
@@ -45,6 +45,11 @@ def _stress_label(c: Caregiver) -> str | None:
             return "Moderate"
         return "Low"
     return None
+
+
+def _is_monthly(c: Caregiver) -> bool:
+    """Return True if this caregiver's check_what indicates a monthly check-in."""
+    return bool(c.check_what and "monthly" in c.check_what.lower())
 
 
 def analytics() -> dict[str, Any]:
@@ -66,16 +71,30 @@ def analytics() -> dict[str, Any]:
             "70_plus"
         )
         groups[key] += 1
+
     birthdays = Counter(str(c.birthday.month) for c in caregivers if c.birthday)
     stress_dist = _distribution([_stress_label(c) for c in caregivers])
+
+    # Grant type distribution — flattened from JSON arrays in the grants field
+    grant_dist = _json_list_distribution([c.grants for c in caregivers])
+
+    # Monthly follow-up distribution — check_when month for monthly check-in caregivers
+    monthly_followup: Counter = Counter()
+    for c in caregivers:
+        if _is_monthly(c) and c.check_when:
+            monthly_followup[str(c.check_when.month)] += 1
+    monthly_followup_dist = dict(
+        sorted(monthly_followup.items(), key=lambda item: int(item[0]))
+    )
+
     return {
         "language_distribution": _json_list_distribution([c.language for c in caregivers]),
         "centre_distribution": _distribution([c.centre for c in caregivers]),
         "birthday_by_month": dict(sorted(birthdays.items(), key=lambda item: int(item[0]))),
         "age_groups": groups,
-        "interest_distribution": _json_list_distribution([c.hobbies for c in caregivers]),
-        "needs_distribution": _json_list_distribution([c.needs for c in caregivers]),
         "stress_distribution": stress_dist,
+        "grant_type_distribution": grant_dist,
+        "monthly_followup_distribution": monthly_followup_dist,
         "high_zbi_count": sum(1 for c in caregivers if c.zbi is not None and c.zbi >= 40),
         "average_age": round(sum(ages) / len(ages), 1) if ages else None,
     }

@@ -23,20 +23,23 @@ def _migrate(app: object) -> None:
     with app.app_context():
         from sqlalchemy import inspect, text
         inspector = inspect(db.engine)
+
+        # Caregiver table migrations
         try:
             existing = {col["name"] for col in inspector.get_columns("caregivers")}
         except Exception:
-            return  # Table doesn't exist yet; create_all handles it.
-        additions = [
+            existing = set()
+
+        caregiver_additions = [
             ("stress_level", "ALTER TABLE caregivers ADD COLUMN stress_level VARCHAR(20)"),
             ("stress_score", "ALTER TABLE caregivers ADD COLUMN stress_score INTEGER"),
         ]
-        for col_name, sql in additions:
+        for col_name, sql in caregiver_additions:
             if col_name not in existing:
                 try:
                     db.session.execute(text(sql))
                     db.session.commit()
-                    logger.info("Migration applied: added column %s", col_name)
+                    logger.info("Migration applied: added column caregivers.%s", col_name)
                 except Exception as exc:
                     db.session.rollback()
-                    logger.warning("Migration skipped for %s: %s", col_name, exc)
+                    logger.warning("Migration skipped for caregivers.%s: %s", col_name, exc)

@@ -6,17 +6,24 @@ import logging
 from pathlib import Path
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, redirect, request, send_from_directory, session
 
 from config import BASE_DIR, Config
 from database import init_database
+from routes.account import account_bp
 from routes.alerts import alerts_bp
+from routes.auth import auth_bp
 from routes.caregivers import caregivers_bp
 from routes.dashboard import dashboard_bp
 from routes.recommendations import recommendations_bp
+from routes.settings_route import settings_bp
 from routes.upload import upload_bp
 from services.alert_service import birthday_alerts
 from utils.logging import configure_logging
+
+_PUBLIC_PATHS = {"/auth/login", "/auth/signup", "/login.html", "/signup.html"}
+_STATIC_FILES = {"index.html", "style.css", "script.js", "login.html", "signup.html"}
+_STATIC_DIRS = {"assets", "icons", "images"}
 
 
 def create_app() -> Flask:
@@ -27,11 +34,31 @@ def create_app() -> Flask:
     Path(app.config["UPLOAD_FOLDER"]).mkdir(parents=True, exist_ok=True)
     Path(BASE_DIR / "database").mkdir(exist_ok=True)
     init_database(app)
-    for blueprint in (dashboard_bp, caregivers_bp, upload_bp, alerts_bp, recommendations_bp):
+
+    blueprints = (
+        auth_bp, account_bp, dashboard_bp, caregivers_bp,
+        upload_bp, alerts_bp, recommendations_bp, settings_bp,
+    )
+    for blueprint in blueprints:
         app.register_blueprint(blueprint)
 
-    _STATIC_FILES = {"index.html", "style.css", "script.js"}
-    _STATIC_DIRS = {"assets", "icons", "images"}
+    @app.before_request
+    def check_auth():
+        """Redirect or reject unauthenticated requests."""
+        path = request.path
+        # Always allow public pages and auth endpoints
+        if path in _PUBLIC_PATHS:
+            return None
+        # Always allow static assets (css, js, fonts, etc.)
+        top = path.lstrip("/").split("/")[0]
+        if top in _STATIC_DIRS or any(path.endswith(ext) for ext in (".css", ".js", ".ico", ".png", ".jpg", ".woff2")):
+            return None
+        # Check session
+        if not session.get("user_id"):
+            if path == "/" or not path.startswith("/auth"):
+                if request.accept_mimetypes.accept_html and not path.startswith("/auth"):
+                    return redirect("/login.html")
+                return jsonify({"error": "Authentication required.", "redirect": "/login.html"}), 401
 
     @app.route("/")
     def index():
@@ -39,7 +66,6 @@ def create_app() -> Flask:
 
     @app.route("/<path:filename>")
     def static_files(filename):
-        # Only serve known frontend files and asset directories; block everything else.
         top = filename.split("/")[0]
         if filename in _STATIC_FILES or top in _STATIC_DIRS:
             return send_from_directory(BASE_DIR, filename)

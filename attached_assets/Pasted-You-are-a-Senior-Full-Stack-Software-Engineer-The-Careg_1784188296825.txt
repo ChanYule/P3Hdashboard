@@ -1,0 +1,407 @@
+You are a Senior Full Stack Software Engineer.
+
+The Caregiver Management System already has a working frontend and backend.
+
+Your task is to improve and complete the existing application WITHOUT redesigning the UI.
+
+Maintain the current design language, styling, folder structure and coding standards.
+
+Focus on implementing the missing functionality and fixing existing issues.
+
+=========================================================
+1. USER AUTHENTICATION
+=========================================================
+
+Implement a proper authentication system.
+
+Create two separate pages:
+
+• Login
+• Sign Up
+
+Requirements
+
+LOGIN
+
+Fields
+
+- Username
+- Password
+
+Buttons
+
+- Login
+- Remember Me
+- Forgot Password (placeholder for future implementation)
+
+Validation
+
+- Empty field validation
+- Invalid username/password message
+- Successful login redirects to Dashboard
+
+SIGN UP
+
+Fields
+
+- Full Name
+- Username
+- Email
+- Password
+- Confirm Password
+
+Requirements
+
+- Username must be unique
+- Password confirmation must match
+- Password should be securely hashed using Werkzeug
+- Store users locally in SQLite
+- Automatically redirect to Login after successful registration
+
+Sessions
+
+- Maintain user login session
+- Protect all pages except Login and Sign Up
+- Redirect unauthenticated users to Login
+- Logout button should end the session and return to Login
+
+=========================================================
+2. ALERT LOGIC
+=========================================================
+
+Update the alert generation logic.
+
+The Excel column:
+
+"Check When"
+
+currently represents TWO different reminder types.
+
+Business Rules
+
+IF "Check What" contains the word
+
+"Monthly"
+
+THEN
+
+Generate a Monthly Check-in reminder.
+
+Otherwise
+
+Treat the "Check When" date as the follow-up date for
+
+South West Community Caring Fund /
+South West Caregiver Support Fund
+
+This means
+
+IF Check What = Monthly
+
+→ Monthly reminder
+
+ELSE
+
+→ Grant Follow-up reminder
+
+Update all alert calculations accordingly.
+
+Dashboard statistics should reflect this logic.
+
+Alert Centre should also use this logic.
+
+=========================================================
+3. ANALYTICS PAGE
+=========================================================
+
+Remove the following charts completely.
+
+- Hobbies
+- Interests
+
+Do NOT leave empty placeholders.
+
+Reorganise the remaining charts so the layout still looks balanced.
+
+Keep
+
+Languages
+
+Centres
+
+Stress Levels
+
+Age Distribution
+
+Birthdays
+
+Grant Types
+
+Monthly Follow-ups
+
+=========================================================
+4. CAREGIVER PAGE
+=========================================================
+
+Currently the Dashboard updates after importing Excel,
+
+but the Caregivers page does NOT display imported caregiver records.
+
+Fix this issue.
+
+Requirements
+
+The Caregivers table must always read directly from SQLite.
+
+After importing Excel,
+
+the table should automatically display the imported caregivers.
+
+No page refresh required.
+
+No sample data.
+
+Support
+
+Search
+
+Pagination
+
+Sorting
+
+Filtering
+
+Profile View
+
+Ensure the frontend is correctly connected to the backend API.
+
+=========================================================
+5. SETTINGS PAGE
+=========================================================
+
+The Settings page currently contains only UI.
+
+Implement actual functionality.
+
+Sections
+
+General
+
+Notifications
+
+Appearance
+
+Data
+
+Backup
+
+Account
+
+General
+
+- Application Name
+- Default Centre
+
+Notifications
+
+Enable/Disable
+
+Birthday Alerts
+
+Grant Alerts
+
+Monthly Check-in Alerts
+
+Email Notifications
+
+Appearance
+
+Light Mode
+
+Dark Mode
+
+System Theme
+
+Accent Colour
+
+Data
+
+Export Database
+
+Import Database
+
+Clear Database
+
+Backup
+
+Create Backup
+
+Restore Backup
+
+View Existing Backups
+
+Settings should persist locally using SQLite or a configuration file.
+
+=========================================================
+6. ACCOUNT PAGE
+=========================================================
+
+Create a fully functional Account page.
+
+Display
+
+Profile Picture (placeholder)
+
+Full Name
+
+Username
+
+Email
+
+Role
+
+Date Created
+
+Last Login
+
+Buttons
+
+Edit Profile
+
+Change Password
+
+Logout
+
+Edit Profile
+
+Allow editing
+
+Full Name
+
+Email
+
+Profile Picture (future)
+
+Change Password
+
+Current Password
+
+New Password
+
+Confirm Password
+
+Validate correctly.
+
+Update database.
+
+=========================================================
+7. SIDEBAR
+=========================================================
+
+Display the currently logged in user's name and profile icon at the bottom of the sidebar.
+
+Example
+
+John Tan
+
+Administrator
+
+Clicking it opens the Account page.
+
+=========================================================
+8. DATABASE
+=========================================================
+
+Create User table if it does not already exist.
+
+Fields
+
+id
+
+full_name
+
+username
+
+email
+
+password_hash
+
+role
+
+created_at
+
+last_login
+
+Ensure password hashing is implemented using Werkzeug.
+
+Do NOT store plain text passwords.
+
+=========================================================
+9. FRONTEND CONNECTIONS
+=========================================================
+
+Ensure all pages are connected to the backend.
+
+Dashboard
+
+Caregivers
+
+Alerts
+
+Analytics
+
+Settings
+
+Account
+
+should all retrieve live data instead of placeholder values.
+
+=========================================================
+10. CODE QUALITY
+=========================================================
+
+Maintain clean architecture.
+
+Routes should remain thin.
+
+Business logic belongs inside services.
+
+Use SQLAlchemy models.
+
+Add proper error handling.
+
+Follow PEP8.
+
+Include type hints.
+
+Use reusable helper functions.
+
+=========================================================
+EXPECTED RESULT
+=========================================================
+
+After these changes:
+
+✓ Users can register and log in
+
+✓ Sessions work correctly
+
+✓ Only logged-in users can access the system
+
+✓ Caregivers page displays imported caregiver records
+
+✓ Alert logic correctly interprets "Check When" and "Check What"
+
+✓ Analytics page no longer contains Hobbies or Interests charts
+
+✓ Settings page is fully functional
+
+✓ Account page is fully functional
+
+✓ Sidebar displays the logged-in user's information
+
+✓ All data comes from the local SQLite database
+
+✓ No cloud services are used
+
+✓ The application remains fully functional offline.
