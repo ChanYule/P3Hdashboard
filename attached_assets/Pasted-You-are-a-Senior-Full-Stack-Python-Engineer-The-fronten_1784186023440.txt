@@ -1,0 +1,351 @@
+You are a Senior Full Stack Python Engineer.
+
+The frontend has already been completed.
+
+DO NOT redesign the UI.
+
+DO NOT change the CSS unless absolutely necessary.
+
+Your task is to convert the existing frontend into a fully dynamic Flask application.
+
+=========================================================
+
+CURRENT PROBLEM
+
+=========================================================
+
+Currently the frontend is using hardcoded sample data.
+
+Examples include:
+
+- Total Caregivers = 154
+- Upcoming Birthdays = 5
+- Recommendation cards
+- Caregiver table
+- Dashboard charts
+- Alerts
+- Analytics
+
+These values are currently fake.
+
+I want ALL sample data removed.
+
+The frontend should display only real data from the backend.
+
+=========================================================
+
+YOUR TASK
+
+=========================================================
+
+Convert every page so it loads data from Flask.
+
+No hardcoded caregivers.
+
+No hardcoded alerts.
+
+No hardcoded charts.
+
+No fake recommendation cards.
+
+No placeholder statistics.
+
+=========================================================
+
+FRONTEND
+
+=========================================================
+
+Keep the existing design.
+
+Keep all styling.
+
+Keep all layouts.
+
+Keep all components.
+
+Only replace sample data with dynamic data.
+
+=========================================================
+
+BACKEND
+
+=========================================================
+
+Create proper Flask routes.
+
+Create APIs that return JSON.
+
+Use SQLite.
+
+Read data from the database.
+
+=========================================================
+
+IMPORT PAGE
+
+=========================================================
+
+The Upload page should now work.
+
+Requirements
+
+Upload Excel
+
+Validate file
+
+Read using pandas
+
+Store into SQLite
+
+Display
+
+Import success
+
+Rows imported
+
+Rows updated
+
+Rows skipped
+
+Errors
+
+After successful upload
+
+Automatically refresh dashboard.
+
+=========================================================
+
+DASHBOARD
+
+=========================================================
+
+Remove every hardcoded value.
+
+Dashboard cards should calculate from SQLite.
+
+Examples
+
+Total caregivers
+
+SELECT COUNT(*)
+
+Upcoming birthdays
+
+Calculate dynamically
+
+Grant follow-ups due
+
+Calculate dynamically
+
+Monthly check-ins due
+
+Calculate dynamically
+
+High stress caregivers
+
+Calculate dynamically
+
+Charts should use live data.
+
+=========================================================
+
+CAREGIVER TABLE
+
+=========================================================
+
+Remove all fake caregivers.
+
+Populate table using database.
+
+Support
+
+Search
+
+Pagination
+
+Sorting
+
+Filtering
+
+Language
+
+Centre
+
+Needs
+
+Hobbies
+
+Status
+
+Birthday Month
+
+=========================================================
+
+PROFILE PAGE
+
+=========================================================
+
+Open real caregiver profile.
+
+Display all fields from database.
+
+=========================================================
+
+ALERTS
+
+=========================================================
+
+Remove fake alerts.
+
+Generate alerts from backend.
+
+Birthday
+
+Grant Follow-up
+
+Monthly Check-in
+
+=========================================================
+
+RECOMMENDATIONS
+
+=========================================================
+
+Remove sample recommendations.
+
+When no recommendation has been generated yet
+
+Show a clean Empty State.
+
+Example
+
+"No recommendations generated yet."
+
+After user clicks Generate
+
+Use backend recommendation engine.
+
+=========================================================
+
+ANALYTICS
+
+=========================================================
+
+Remove fake charts.
+
+Generate charts from SQLite.
+
+=========================================================
+
+EMPTY STATES
+
+=========================================================
+
+When database is empty
+
+Dashboard should NOT display fake data.
+
+Instead display
+
+"No caregiver data found."
+
+Show a button
+
+Import Excel
+
+If caregiver table is empty
+
+Show
+
+"No caregivers available."
+
+If alerts are empty
+
+Show
+
+"No alerts today."
+
+If recommendations are empty
+
+Show
+
+"No recommendations generated."
+
+=========================================================
+
+BACKEND CONNECTION
+
+=========================================================
+
+Use Flask templates (Jinja2) where appropriate.
+
+For dynamic updates
+
+Use fetch()
+
+or
+
+AJAX
+
+The frontend should retrieve JSON from Flask APIs.
+
+=========================================================
+
+DATABASE
+
+=========================================================
+
+The database is the single source of truth.
+
+Every statistic
+
+Every chart
+
+Every table
+
+Every profile
+
+Every alert
+
+must come from SQLite.
+
+=========================================================
+
+DO NOT
+
+=========================================================
+
+Do NOT leave any hardcoded numbers.
+
+Do NOT leave fake caregivers.
+
+Do NOT leave placeholder charts.
+
+Do NOT leave placeholder alerts.
+
+Do NOT use sample JSON.
+
+Do NOT use mock arrays.
+
+=========================================================
+
+AFTER COMPLETION
+
+=========================================================
+
+Search the entire project.
+
+Remove ALL hardcoded sample data.
+
+Replace every placeholder with backend-driven data.
+
+The application should behave correctly when
+
+1. Database is empty
+
+2. One caregiver exists
+
+3. Thousands of caregivers exist
+
+The UI should automatically update based on the database contents.

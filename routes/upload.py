@@ -15,7 +15,7 @@ upload_bp = Blueprint("upload", __name__)
 
 @upload_bp.post("/upload")
 def upload_file():
-    """Store a temporary local spreadsheet and import its caregiver records."""
+    """Store a temporary spreadsheet locally and import its caregiver records."""
     file = request.files.get("file")
     if not file or not file.filename:
         return jsonify({"error": "A spreadsheet file is required."}), 400
@@ -25,6 +25,7 @@ def upload_file():
     destination = Path(current_app.config["UPLOAD_FOLDER"]) / f"{uuid4().hex}_{name}"
     file.save(destination)
     try:
-        return jsonify(import_caregivers(destination)), 201
+        result = import_caregivers(destination)
+        return jsonify(result), 201
     except ImportValidationError as exc:
         return jsonify({"error": str(exc)}), 400

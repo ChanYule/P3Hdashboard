@@ -1,0 +1,310 @@
+You are a Senior Python Software Engineer.
+
+Improve the existing Excel import system and data parsing logic for the Caregiver Management System.
+
+Do NOT redesign the frontend.
+
+Only improve the backend import logic and connect the imported data correctly to the frontend.
+
+=========================================================
+1. HOBBIES PARSING
+=========================================================
+
+The "Hobbies" column in the Excel file contains multiple hobbies inside a single cell.
+
+Business Rule:
+
+Every line beginning with ">" represents ONE separate hobby.
+
+Example:
+
+> Walking
+> Exercising
+> Attends Thursday 10:15 - 11:30 Coach Daniel's stretchband class
+> Chatting with Karen and Elizabeth
+
+This should be imported as
+
+[
+    "Walking",
+    "Exercising",
+    "Attends Thursday 10:15 - 11:30 Coach Daniel's stretchband class",
+    "Chatting with Karen and Elizabeth"
+]
+
+NOT as one long string.
+
+Requirements:
+
+• Split hobbies into individual items.
+• Trim whitespace.
+• Remove empty entries.
+• Ignore duplicate hobbies.
+• Preserve the original hobby text.
+• Store hobbies in a structured format that can later support searching and filtering.
+
+The Caregiver object should expose hobbies as a list instead of one long string.
+
+=========================================================
+2. GRANTS PARSING
+=========================================================
+
+The "Grants" column follows the same format.
+
+Every line beginning with ">" represents one separate grant or grant record.
+
+Example:
+
+> South West Community Caring Fund
+> South West Caregiver Support Fund
+
+These should become
+
+[
+    "South West Community Caring Fund",
+    "South West Caregiver Support Fund"
+]
+
+Do not keep grants as one large text block.
+
+Split, trim and clean the data.
+
+=========================================================
+3. LANGUAGE PARSING
+=========================================================
+
+The Language column stores multiple languages separated by commas.
+
+Example
+
+English, Mandarin, Hokkien
+
+Should become
+
+[
+    "English",
+    "Mandarin",
+    "Hokkien"
+]
+
+Requirements
+
+• Split by comma
+• Trim whitespace
+• Remove duplicates
+• Ignore empty values
+• Preserve original capitalization where possible
+
+=========================================================
+4. STRESS LEVEL (ZBI) PARSING
+=========================================================
+
+The ZBI column contains BOTH a stress category and a numerical score in the same cell.
+
+Examples
+
+High (68)
+
+Moderate (45)
+
+Low (18)
+
+Extract BOTH pieces of information.
+
+Store
+
+stress_level
+
+Possible values
+
+High
+
+Moderate
+
+Low
+
+AND
+
+stress_score
+
+Integer only
+
+Examples
+
+High (68)
+
+becomes
+
+stress_level = "High"
+
+stress_score = 68
+
+Moderate (45)
+
+becomes
+
+stress_level = "Moderate"
+
+stress_score = 45
+
+Low (18)
+
+becomes
+
+stress_level = "Low"
+
+stress_score = 18
+
+If only a number exists
+
+Extract the number.
+
+If only the keyword exists
+
+Store the keyword.
+
+=========================================================
+5. IMPORT DATA PAGE
+=========================================================
+
+After importing Excel successfully,
+
+the imported caregivers should automatically appear inside
+
+Import Data
+
+Data Preview
+
+instead of the current sample data.
+
+The preview table should display the newly imported records immediately without requiring a page refresh.
+
+Display at least the first 10 imported caregivers.
+
+=========================================================
+6. CAREGIVERS PAGE
+=========================================================
+
+Currently the dashboard updates,
+
+but the Caregivers page still displays sample data.
+
+Fix this.
+
+The Caregivers page should always load data directly from the SQLite database.
+
+After importing,
+
+the table should immediately display the real caregivers.
+
+Do NOT use any hardcoded sample data.
+
+=========================================================
+7. SEARCH AND FILTERING
+=========================================================
+
+Since hobbies, grants and languages are now structured,
+
+update searching and filtering.
+
+Users should be able to search for
+
+Walking
+
+and find caregivers whose hobbies include Walking.
+
+Users should be able to search
+
+Mandarin
+
+and find caregivers who speak Mandarin.
+
+Users should be able to search
+
+South West Community Caring Fund
+
+and find caregivers with that grant.
+
+=========================================================
+8. DATABASE
+=========================================================
+
+Design the import logic so that structured fields are future-proof.
+
+If SQLite stores hobbies, grants and languages as JSON text, ensure they are automatically converted back into Python lists when retrieved.
+
+The frontend should receive arrays/lists rather than one long string.
+
+=========================================================
+9. FRONTEND DISPLAY
+=========================================================
+
+Whenever hobbies, grants or languages are displayed,
+
+show them as individual tags/chips instead of one long paragraph.
+
+Example
+
+Walking
+
+Exercising
+
+Stretchband Class
+
+Chatting
+
+Likewise for Languages
+
+English
+
+Mandarin
+
+Hokkien
+
+And Grants
+
+South West Community Caring Fund
+
+South West Caregiver Support Fund
+
+=========================================================
+10. REMOVE SAMPLE DATA
+=========================================================
+
+Search the entire project.
+
+Remove any remaining hardcoded caregiver records.
+
+Remove hardcoded hobbies.
+
+Remove hardcoded grants.
+
+Remove hardcoded languages.
+
+Remove sample stress levels.
+
+The application should display ONLY imported data from SQLite.
+
+=========================================================
+11. EXPECTED RESULT
+=========================================================
+
+After importing the Excel file:
+
+✓ Dashboard updates
+
+✓ Import Data preview shows imported caregivers
+
+✓ Caregivers page shows imported caregivers
+
+✓ Hobbies are separated correctly
+
+✓ Grants are separated correctly
+
+✓ Languages are separated correctly
+
+✓ Stress Level and Stress Score are extracted correctly
+
+✓ Search and filters work using the parsed data
+
+✓ No sample data remains anywhere in the application.

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from flask import Blueprint, jsonify
 
 from models import Caregiver
@@ -13,16 +15,24 @@ dashboard_bp = Blueprint("dashboard", __name__)
 
 @dashboard_bp.get("/dashboard")
 def dashboard():
-    """Return all dashboard counts and distributions in one local JSON response."""
+    """Return all dashboard counts and distributions in one JSON response."""
     data = analytics()
     caregivers = Caregiver.query.all()
-    data.update({"total_caregivers": len(caregivers), "upcoming_birthdays": upcoming_birthdays(),
-                 "grant_followups_due": grant_followup_alerts(),
-                 "monthly_checkins_due": overdue_checkin_alerts(),
-                 "high_stress_caregivers": [c.to_dict() for c in caregivers if c.zbi is not None and c.zbi >= 40],
-                 "centres": data["centre_distribution"], "languages": data["language_distribution"],
-                 "caregiving_domains": _domains(caregivers), "interests": data["interest_distribution"],
-                 "age_distribution": data["age_groups"]})
+    month_start = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    new_this_month = Caregiver.query.filter(Caregiver.created_at >= month_start).count()
+    data.update({
+        "total_caregivers": len(caregivers),
+        "new_caregivers_this_month": new_this_month,
+        "upcoming_birthdays": upcoming_birthdays(),
+        "grant_followups_due": grant_followup_alerts(),
+        "monthly_checkins_due": overdue_checkin_alerts(),
+        "high_stress_caregivers": [
+            c.to_dict() for c in caregivers if c.zbi is not None and c.zbi >= 40
+        ],
+        "age_distribution": data["age_groups"],
+        "languages": data["language_distribution"],
+        "interests": data["interest_distribution"],
+    })
     return jsonify(data)
 
 
@@ -33,7 +43,7 @@ def analytics_report():
 
 
 def _domains(caregivers: list[Caregiver]) -> dict[str, int]:
-    """Estimate caregiving domains from existing situation text for version one."""
+    """Estimate caregiving domains from situation text."""
     domains: dict[str, int] = {}
     for caregiver in caregivers:
         if caregiver.situation:

@@ -17,9 +17,23 @@ def list_caregivers():
     search = request.args.get("search", "").strip()
     if search:
         pattern = f"%{search}%"
-        query = query.filter(or_(Caregiver.name.ilike(pattern), Caregiver.phone.ilike(pattern), Caregiver.centre.ilike(pattern)))
-    for parameter, column in {"language": Caregiver.language, "centre": Caregiver.centre,
-                              "hobby": Caregiver.hobbies, "need": Caregiver.needs, "flag": Caregiver.flag}.items():
+        query = query.filter(or_(
+            Caregiver.name.ilike(pattern),
+            Caregiver.phone.ilike(pattern),
+            Caregiver.centre.ilike(pattern),
+            Caregiver.hobbies.ilike(pattern),
+            Caregiver.grants.ilike(pattern),
+            Caregiver.language.ilike(pattern),
+        ))
+    text_filters = {
+        "language": Caregiver.language,
+        "centre": Caregiver.centre,
+        "hobby": Caregiver.hobbies,
+        "need": Caregiver.needs,
+        "flag": Caregiver.flag,
+        "stress_level": Caregiver.stress_level,
+    }
+    for parameter, column in text_filters.items():
         value = request.args.get(parameter, "").strip()
         if value:
             query = query.filter(column.ilike(f"%{value}%"))
@@ -30,17 +44,19 @@ def list_caregivers():
     page = max(1, request.args.get("page", 1, type=int))
     per_page = min(100, max(1, request.args.get("per_page", 20, type=int)))
     result = query.paginate(page=page, per_page=per_page, error_out=False)
-    return jsonify({"items": [caregiver.to_dict() for caregiver in result.items], "pagination": {
-        "page": result.page, "per_page": result.per_page, "total": result.total, "pages": result.pages}})
+    return jsonify({
+        "items": [caregiver.to_dict() for caregiver in result.items],
+        "pagination": {
+            "page": result.page,
+            "per_page": result.per_page,
+            "total": result.total,
+            "pages": result.pages,
+        },
+    })
 
 
 @caregivers_bp.get("/caregiver/<int:caregiver_id>")
 def caregiver_profile(caregiver_id: int):
     """Return a complete caregiver profile."""
-    caregiver = db_get_or_404(caregiver_id)
+    caregiver = Caregiver.query.get_or_404(caregiver_id, description="Caregiver not found.")
     return jsonify(caregiver.to_dict())
-
-
-def db_get_or_404(caregiver_id: int) -> Caregiver:
-    """Fetch a caregiver or return Flask's standard JSON-friendly 404."""
-    return Caregiver.query.get_or_404(caregiver_id, description="Caregiver not found.")
