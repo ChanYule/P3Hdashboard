@@ -40,18 +40,19 @@
 .backup-row span:first-child{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
 
 /* ── Stress breakdown panel (dashboard) ───────────────────────────── */
+/* ── Stress breakdown ─────────────────────────────────────────────── */
 .stress-breakdown{padding:4px 0 8px}
-.stress-summary{display:grid;gap:14px}
-.stress-bar-row{display:grid;grid-template-columns:80px 1fr 80px;align-items:center;gap:12px}
-.stress-bar-label{font-size:12px;font-weight:600;color:var(--ink)}
-.stress-bar-track{height:8px;border-radius:99px;background:var(--bg);overflow:hidden}
-.stress-bar-fill{height:100%;border-radius:99px;transition:width .4s ease}
+.stress-summary{display:grid;gap:18px}
+.stress-bar-row{display:grid;grid-template-columns:74px 1fr 52px;align-items:center;gap:16px}
+.stress-bar-label{font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap}
+.stress-bar-track{height:10px;border-radius:99px;background:var(--line);overflow:hidden}
+.stress-bar-fill{height:100%;border-radius:99px;transition:width .5s ease}
 .stress-bar-fill.high{background:#e53935}
 .stress-bar-fill.moderate{background:#f4b400}
 .stress-bar-fill.low{background:#2e7d6b}
-.stress-bar-count{font-size:12px;color:var(--muted);text-align:right}
-.stress-bar-count strong{color:var(--ink);margin-right:4px}
-.stress-bar-count em{font-style:normal}
+.stress-bar-count{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.stress-bar-count strong{font-size:13px;font-weight:700;color:var(--ink);line-height:1}
+.stress-bar-count em{font-style:normal;font-size:11px;color:var(--muted);line-height:1}
 .stress-footnote{font-size:11px;color:var(--muted);margin:16px 0 0;padding-top:12px;border-top:1px solid var(--line)}
 
 /* ── ZBI score badge (caregivers table) ───────────────────────────── */

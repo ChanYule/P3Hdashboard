@@ -215,7 +215,10 @@ function renderStressBreakdown(data) {
       <div class="stress-bar-track">
         <div class="stress-bar-fill ${cls}" style="width:${pct(n)}%"></div>
       </div>
-      <span class="stress-bar-count"><strong>${n}</strong> <em>${pct(n)}%</em></span>
+      <span class="stress-bar-count">
+        <strong>${n}</strong>
+        <em>${pct(n)}%</em>
+      </span>
     </div>`;
   el.innerHTML = `
     <div class="stress-summary">
@@ -223,7 +226,7 @@ function renderStressBreakdown(data) {
       ${bar(mod,  'moderate', 'Moderate')}
       ${bar(low,  'low',      'Low')}
     </div>
-    <p class="stress-footnote">${total} of ${data.total_caregivers} caregivers assessed · scores from ZBI column</p>`;
+    <p class="stress-footnote">${total} of ${data.total_caregivers ?? total} caregivers assessed · scores from ZBI column</p>`;
 }
 
 function renderRecentAlerts(data) {
