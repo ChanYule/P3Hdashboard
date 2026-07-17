@@ -26,12 +26,6 @@ def dashboard():
         "upcoming_birthdays": upcoming_birthdays(),
         "grant_followups_due": grant_followup_alerts(),
         "monthly_checkins_due": overdue_checkin_alerts(),
-        "high_stress_caregivers": [
-            c.to_dict() for c in caregivers if c.zbi is not None and c.zbi >= 40
-        ],
-        "age_distribution": data["age_groups"],
-        "languages": data["language_distribution"],
-        "interests": data["interest_distribution"],
     })
     return jsonify(data)
 
