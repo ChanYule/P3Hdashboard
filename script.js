@@ -136,9 +136,11 @@ const BASE_OPTS = {
       cornerRadius: 8,
       callbacks: {
         label: ctx => {
-          const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
-          const pct   = total ? Math.round((ctx.parsed / total) * 100) : 0;
-          return ` ${ctx.parsed}  (${pct}%)`;
+          const raw   = (ctx.parsed && typeof ctx.parsed === 'object') ? ctx.parsed.y : ctx.parsed;
+          const total = ctx.dataset.data.reduce((a, b) => a + (typeof b === 'object' ? (b?.y ?? 0) : (b || 0)), 0);
+          const pct   = total ? Math.round((raw / total) * 100) : 0;
+          const isDoughnut = ctx.chart.config.type === 'doughnut';
+          return isDoughnut ? ` ${raw}  (${pct}%)` : ` ${raw}`;
         }
       }
     },
