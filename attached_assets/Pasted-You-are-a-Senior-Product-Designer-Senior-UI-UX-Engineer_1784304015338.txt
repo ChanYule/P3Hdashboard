@@ -1,0 +1,475 @@
+You are a Senior Product Designer, Senior UI/UX Engineer, Senior Frontend Engineer and Senior Full Stack Software Architect.
+
+You are improving an existing Caregiver Management System called CareCircle.
+
+The application is already functional.
+
+Do NOT rebuild it.
+
+Do NOT redesign everything.
+
+Instead, review the existing application like a professional software consultant and improve it while preserving all existing functionality.
+
+Think of this as preparing the application for deployment to a real community care organisation.
+
+==================================================
+OVERALL GOAL
+==================================================
+
+The application should feel comparable to modern enterprise software such as
+
+• Microsoft 365 Admin Center
+• Notion
+• Airtable
+• Monday.com
+• Salesforce
+• HubSpot CRM
+
+The interface should be clean, modern, intuitive and professional.
+
+Users are non-technical staff.
+
+Every screen should help them work faster.
+
+==================================================
+STEP 1
+FULL UI/UX AUDIT
+==================================================
+
+Before making any code changes,
+
+review the existing application.
+
+Identify at least 50 improvements.
+
+Review
+
+• Layout
+• Visual hierarchy
+• Colour usage
+• Typography
+• White space
+• Navigation
+• Sidebar
+• Dashboard
+• Cards
+• Tables
+• Forms
+• Buttons
+• Charts
+• Alerts
+• Search
+• Empty states
+• Loading states
+• Error messages
+• Accessibility
+• Responsiveness
+• Performance
+• Overall consistency
+
+Categorise improvements
+
+High Impact
+
+Medium Impact
+
+Low Impact
+
+==================================================
+STEP 2
+IMPROVE THE DASHBOARD
+==================================================
+
+The dashboard should no longer only display statistics.
+
+It should become an operational homepage.
+
+The first question it should answer is
+
+"What requires my attention today?"
+
+Improve the homepage by adding
+
+Today's Priorities
+
+Quick Actions
+
+Insights
+
+Recent Activity
+
+Last Import Information
+
+Upcoming Events
+
+Recent Notifications
+
+Recent Imports
+
+The dashboard should guide staff towards taking action.
+
+==================================================
+HEADER
+==================================================
+
+Improve the welcome section.
+
+Display
+
+Greeting
+
+Current Date
+
+Current Time
+
+Logged-in User
+
+Last Data Import
+
+Database Status
+
+==================================================
+QUICK ACTIONS
+==================================================
+
+Add a Quick Actions panel.
+
+Include buttons
+
+Import Excel
+
+Create Workshop
+
+Generate Recommendations
+
+Backup Database
+
+Export Caregivers
+
+Settings
+
+Use icons.
+
+Use hover animations.
+
+Use subtle shadows.
+
+==================================================
+KPI CARDS
+==================================================
+
+Improve KPI cards.
+
+Increase size slightly.
+
+Improve spacing.
+
+Each card should display
+
+Icon
+
+Title
+
+Value
+
+Small trend
+
+Example
+
+Total Caregivers
+
+156
+
++12 this month
+
+Instead of only displaying one number.
+
+==================================================
+TODAY'S PRIORITIES
+==================================================
+
+Create a dedicated section.
+
+Show
+
+Birthdays Today
+
+Grant Follow-ups
+
+Monthly Check-ins
+
+Upcoming Workshops
+
+Recent Imports
+
+High Stress Caregivers
+
+Each card should include
+
+View
+
+Take Action
+
+Mark Complete (future)
+
+==================================================
+ALERTS
+==================================================
+
+Improve alerts.
+
+Group them
+
+Urgent
+
+Upcoming
+
+Completed
+
+Improve colours.
+
+Improve badges.
+
+Improve spacing.
+
+Improve readability.
+
+==================================================
+CHARTS
+==================================================
+
+Improve charts.
+
+Increase spacing.
+
+Improve legends.
+
+Improve tooltips.
+
+Display percentages.
+
+Display totals.
+
+Add chart summaries.
+
+Improve responsiveness.
+
+==================================================
+SEARCH
+==================================================
+
+Improve search.
+
+Search should feel instant.
+
+Improve styling.
+
+Improve placeholder.
+
+Add keyboard shortcut support if appropriate.
+
+==================================================
+SIDEBAR
+==================================================
+
+Improve spacing.
+
+Improve active item.
+
+Improve hover animation.
+
+Display logged-in user information.
+
+Display notification badge.
+
+==================================================
+TABLES
+==================================================
+
+Improve tables.
+
+Sticky headers.
+
+Better row hover.
+
+Striped rows.
+
+Column resizing if possible.
+
+Responsive.
+
+==================================================
+PROFILE PAGE
+==================================================
+
+Improve caregiver profile.
+
+Create sections
+
+Personal
+
+Caregiving
+
+Languages
+
+Grants
+
+Needs
+
+Interests
+
+Timeline
+
+Alerts
+
+==================================================
+CSS
+==================================================
+
+Improve all CSS.
+
+Use CSS variables.
+
+Improve shadows.
+
+Improve spacing.
+
+Improve border radius.
+
+Improve typography.
+
+Improve colours.
+
+Improve buttons.
+
+Improve tables.
+
+Improve forms.
+
+Improve modals.
+
+Improve dropdowns.
+
+Improve cards.
+
+Improve scrollbar.
+
+Improve transitions.
+
+Improve hover effects.
+
+Improve focus effects.
+
+Improve responsiveness.
+
+==================================================
+MICROINTERACTIONS
+==================================================
+
+Add subtle animations.
+
+Card hover
+
+Button hover
+
+Loading
+
+Dropdown
+
+Table rows
+
+Page transitions
+
+Notification appearance
+
+Keep animations smooth.
+
+Do NOT overuse them.
+
+==================================================
+EMPTY STATES
+==================================================
+
+Improve all empty states.
+
+Instead of blank pages,
+
+show helpful messages.
+
+Include action buttons.
+
+==================================================
+LOADING STATES
+==================================================
+
+Implement skeleton loaders.
+
+Do not display empty pages while data loads.
+
+==================================================
+RESPONSIVENESS
+==================================================
+
+Review every page.
+
+Desktop
+
+Laptop
+
+Tablet
+
+Mobile
+
+Ensure cards wrap correctly.
+
+Ensure charts resize properly.
+
+==================================================
+ACCESSIBILITY
+==================================================
+
+Improve
+
+Contrast
+
+Keyboard navigation
+
+ARIA labels
+
+Focus states
+
+Clickable area
+
+==================================================
+PERFORMANCE
+==================================================
+
+Optimise CSS.
+
+Remove duplicated styles.
+
+Remove unused CSS.
+
+Improve rendering performance.
+
+==================================================
+IMPORTANT
+==================================================
+
+Do NOT remove existing functionality.
+
+Do NOT break backend features.
+
+Do NOT redesign navigation.
+
+Maintain existing branding.
+
+Maintain the existing colour palette.
+
+Improve the application incrementally.
+
+After every improvement,
+
+verify that existing functionality still works.
+
+The final application should look and feel like professional enterprise software that could realistically be used daily by community care staff.
