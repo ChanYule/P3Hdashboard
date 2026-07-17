@@ -367,6 +367,7 @@ function caregiverRow(c) {
     <td>${esc(langs)}</td>
     <td>${esc(domain)}</td>
     <td>${sl ? `<span class="stress ${sc}">${esc(sl)}</span>` : '—'}</td>
+    <td>${c.stress_score != null ? `<span class="zbi-score">${esc(c.stress_score)}</span>` : '—'}</td>
     <td>${esc(nextChk)}</td>
     <td><span class="badge success">Active</span></td>
     <td><div class="row-actions">

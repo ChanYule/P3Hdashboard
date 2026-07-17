@@ -53,3 +53,6 @@
 .stress-bar-count strong{color:var(--ink);margin-right:4px}
 .stress-bar-count em{font-style:normal}
 .stress-footnote{font-size:11px;color:var(--muted);margin:16px 0 0;padding-top:12px;border-top:1px solid var(--line)}
+
+/* ── ZBI score badge (caregivers table) ───────────────────────────── */
+.zbi-score{display:inline-block;font-size:12px;font-weight:600;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:2px 8px;min-width:28px;text-align:center}
