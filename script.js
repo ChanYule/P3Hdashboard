@@ -136,8 +136,8 @@ const BASE_OPTS = {
       cornerRadius: 8,
       callbacks: {
         label: ctx => {
-          const raw   = (ctx.parsed && typeof ctx.parsed === 'object') ? ctx.parsed.y : ctx.parsed;
-          const total = ctx.dataset.data.reduce((a, b) => a + (typeof b === 'object' ? (b?.y ?? 0) : (b || 0)), 0);
+          const raw   = ctx.raw ?? 0;
+          const total = ctx.dataset.data.reduce((a, b) => a + (Number(b) || 0), 0);
           const pct   = total ? Math.round((raw / total) * 100) : 0;
           const isDoughnut = ctx.chart.config.type === 'doughnut';
           return isDoughnut ? ` ${raw}  (${pct}%)` : ` ${raw}`;
@@ -998,6 +998,10 @@ function renderSettings(s) {
       const r = await api('/settings/clear', { method: 'POST' });
       toast(r.message);
       delete _loaded['caregivers'];
+      // Reset import page UI
+      const statusEl = $('#importStatus');
+      if (statusEl) { statusEl.style.display = 'none'; statusEl.innerHTML = ''; }
+      renderImportPreview([]);
       loadDashboard();
     } catch (e) { toast(e.message); }
   });
