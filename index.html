@@ -56,6 +56,13 @@
         <article class="panel chart-panel"><div class="panel-heading"><div><h2>Age distribution</h2><p>Across all active caregivers</p></div><button class="text-btn" data-go="analytics">View report <svg><use href="#i-chevron"/></svg></button></div><div class="chart-wrap"><canvas id="ageChart"></canvas></div></article>
         <article class="panel chart-panel"><div class="panel-heading"><div><h2>Languages</h2><p>Preferred communication language</p></div><button class="text-btn" data-go="analytics">View report <svg><use href="#i-chevron"/></svg></button></div><div class="chart-wrap"><canvas id="languageChart"></canvas></div></article>
       </div>
+      <article class="panel" id="stressPanel" style="display:none">
+        <div class="panel-heading">
+          <div><h2>Stress levels</h2><p>Caregiver wellbeing from ZBI assessment</p></div>
+          <button class="text-btn" data-go="analytics">View report <svg><use href="#i-chevron"/></svg></button>
+        </div>
+        <div id="stressBreakdown" class="stress-breakdown"></div>
+      </article>
       <article class="panel alerts-preview"><div class="panel-heading"><div><h2>Recent alerts</h2><p>Items needing your attention</p></div><button class="text-btn" data-go="alerts">View all alerts <svg><use href="#i-chevron"/></svg></button></div><div id="recentAlerts" class="alert-list"></div></article>
     </section>
 

@@ -124,8 +124,8 @@ def _zbi_value(value: Any) -> tuple[str | None, int | None, float | None]:
     text = str(value).strip()
     if not text:
         return None, None, None
-    # "High (68)" / "Moderate (45)" / "Low (18)"
-    m = re.match(r"^(High|Moderate|Low)\s*\((\d+)\)$", text, re.IGNORECASE)
+    # "High (68)" / "High Stress (10)" / "Moderate (45)" / "Low (18)" etc.
+    m = re.match(r"^(High|Moderate|Low)(?:\s+Stress)?\s*\((\d+)\)$", text, re.IGNORECASE)
     if m:
         level = m.group(1).capitalize()
         score = int(m.group(2))

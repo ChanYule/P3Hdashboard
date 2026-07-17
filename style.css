@@ -38,3 +38,18 @@
 .backup-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:12px}
 .backup-row:last-child{border-bottom:0}
 .backup-row span:first-child{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+
+/* ── Stress breakdown panel (dashboard) ───────────────────────────── */
+.stress-breakdown{padding:4px 0 8px}
+.stress-summary{display:grid;gap:14px}
+.stress-bar-row{display:grid;grid-template-columns:80px 1fr 80px;align-items:center;gap:12px}
+.stress-bar-label{font-size:12px;font-weight:600;color:var(--ink)}
+.stress-bar-track{height:8px;border-radius:99px;background:var(--bg);overflow:hidden}
+.stress-bar-fill{height:100%;border-radius:99px;transition:width .4s ease}
+.stress-bar-fill.high{background:#e53935}
+.stress-bar-fill.moderate{background:#f4b400}
+.stress-bar-fill.low{background:#2e7d6b}
+.stress-bar-count{font-size:12px;color:var(--muted);text-align:right}
+.stress-bar-count strong{color:var(--ink);margin-right:4px}
+.stress-bar-count em{font-style:normal}
+.stress-footnote{font-size:11px;color:var(--muted);margin:16px 0 0;padding-top:12px;border-top:1px solid var(--line)}

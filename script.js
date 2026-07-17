@@ -164,15 +164,15 @@ function renderKpis(data) {
   const upcoming = Array.isArray(data.upcoming_birthdays) ? data.upcoming_birthdays.length : 0;
   const grants   = Array.isArray(data.grant_followups_due) ? data.grant_followups_due.length : 0;
   const checkins = Array.isArray(data.monthly_checkins_due) ? data.monthly_checkins_due.length : 0;
-  const stress   = data.high_zbi_count ?? 0;
-  const newThis  = data.new_caregivers_this_month ?? 0;
+  const highStress = data.high_stress_count ?? data.high_zbi_count ?? 0;
+  const newThis    = data.new_caregivers_this_month ?? 0;
   const kpis = [
-    [total,    'Total caregivers',       'i-users',    ''],
-    [upcoming, 'Upcoming birthdays',     'i-calendar', 'This month'],
-    [grants,   'Grant follow-ups due',   'i-bell',     grants > 0 ? `${grants} due` : ''],
-    [checkins, 'Monthly check-ins due',  'i-calendar', ''],
-    [stress,   'High stress caregivers', 'i-target',   stress > 0 ? 'Review needed' : ''],
-    [newThis,  'New caregivers',         'i-users',    'This month'],
+    [total,     'Total caregivers',       'i-users',    ''],
+    [upcoming,  'Upcoming birthdays',     'i-calendar', 'This month'],
+    [grants,    'Grant follow-ups due',   'i-bell',     grants > 0 ? `${grants} due` : ''],
+    [checkins,  'Monthly check-ins due',  'i-calendar', ''],
+    [highStress,'High stress caregivers', 'i-target',   highStress > 0 ? 'Review needed' : ''],
+    [newThis,   'New caregivers',         'i-users',    'This month'],
   ];
   $('#kpiGrid').innerHTML = kpis.map(([val, label, ico, trend]) =>
     `<article class="panel kpi-card">
@@ -194,6 +194,35 @@ function renderDashboardCharts(data) {
     { plugins: { legend: { display: false } } }
   );
   makeChart('languageChart', 'doughnut', Object.keys(lang), Object.values(lang));
+  renderStressBreakdown(data);
+}
+
+function renderStressBreakdown(data) {
+  const panel = $('#stressPanel');
+  const el    = $('#stressBreakdown');
+  if (!panel || !el) return;
+  const high = data.high_stress_count     ?? 0;
+  const mod  = data.moderate_stress_count ?? 0;
+  const low  = data.low_stress_count      ?? 0;
+  const total = high + mod + low;
+  if (total === 0) { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+  const pct = n => total ? Math.round((n / total) * 100) : 0;
+  const bar = (n, cls, label) => `
+    <div class="stress-bar-row">
+      <span class="stress-bar-label">${label}</span>
+      <div class="stress-bar-track">
+        <div class="stress-bar-fill ${cls}" style="width:${pct(n)}%"></div>
+      </div>
+      <span class="stress-bar-count"><strong>${n}</strong> <em>${pct(n)}%</em></span>
+    </div>`;
+  el.innerHTML = `
+    <div class="stress-summary">
+      ${bar(high, 'high',     'High')}
+      ${bar(mod,  'moderate', 'Moderate')}
+      ${bar(low,  'low',      'Low')}
+    </div>
+    <p class="stress-footnote">${total} of ${data.total_caregivers} caregivers assessed · scores from ZBI column</p>`;
 }
 
 function renderRecentAlerts(data) {
