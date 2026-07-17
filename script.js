@@ -141,11 +141,12 @@ async function loadDashboard() {
     renderDashboardCharts(data);
     renderRecentAlerts(data);
     // Update sidebar alert badge
-    const upcoming = Array.isArray(data.upcoming_birthdays) ? data.upcoming_birthdays.length : 0;
-    const grants   = Array.isArray(data.grant_followups_due) ? data.grant_followups_due.length : 0;
-    const checkins = Array.isArray(data.monthly_checkins_due) ? data.monthly_checkins_due.length : 0;
+    const upcoming     = Array.isArray(data.upcoming_birthdays) ? data.upcoming_birthdays.length : 0;
+    const grants       = Array.isArray(data.grant_followups_due) ? data.grant_followups_due.length : 0;
+    const checkins     = Array.isArray(data.monthly_checkins_due) ? data.monthly_checkins_due.length : 0;
+    const grantChecks  = Array.isArray(data.grant_checks_due) ? data.grant_checks_due.length : 0;
     const badge = $('#alertBadge');
-    if (badge) badge.textContent = (upcoming + grants + checkins) || '';
+    if (badge) badge.textContent = (upcoming + grants + checkins + grantChecks) || '';
   } catch {
     if ($('#kpiGrid')) $('#kpiGrid').innerHTML = '<p class="empty-state" style="grid-column:1/-1">Could not load dashboard data.</p>';
   }
@@ -228,6 +229,7 @@ function renderStressBreakdown(data) {
 function renderRecentAlerts(data) {
   const all = [
     ...(data.birthdays_today || []),
+    ...(data.grant_checks_due || []),
     ...(data.grant_followups_due || []),
     ...(data.monthly_checkins_due || []),
     ...(data.upcoming_birthdays || []),
@@ -253,7 +255,7 @@ async function loadAlerts() {
 }
 
 function alertPriority(a) {
-  if (a.type === 'grant_followup' || a.type === 'monthly_checkin') return 'high';
+  if (a.type === 'grant_followup' || a.type === 'monthly_checkin' || a.type === 'grant_check') return 'high';
   if (a.type === 'birthday' || a.type === 'upcoming_birthday') return 'medium';
   return 'low';
 }
@@ -307,6 +309,7 @@ function renderAlerts(data) {
   const groups = [
     { key: 'birthdays_today',    label: "Today's birthdays" },
     { key: 'upcoming_birthdays', label: 'Upcoming birthdays' },
+    { key: 'grant_checks',       label: 'Grant check dates' },
     { key: 'grant_followups',    label: 'Grant follow-ups' },
     { key: 'overdue_checkins',   label: 'Monthly check-ins' },
   ];
