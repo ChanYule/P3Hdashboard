@@ -7,12 +7,12 @@ const icon = id => `<svg><use href="#${id}"/></svg>`;
 const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 /* ─── Toast ─────────────────────────────────────────────────────────── */
-function toast(message) {
+function toast(message, type = 'info') {
   const t = $('#toast');
   t.textContent = message;
   t.classList.add('show');
   clearTimeout(window._toastTimer);
-  window._toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+  window._toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
 }
 
 /* ─── API helper ─────────────────────────────────────────────────────── */
@@ -38,6 +38,7 @@ async function initApp() {
     _currentUser = await api('/auth/me');
     renderSidebarUser(_currentUser);
     renderDashboardGreeting(_currentUser);
+    startClock();
     loadDashboard();
     renderRecommendations([]);
   } catch {
@@ -65,6 +66,42 @@ function renderDashboardGreeting(user) {
   }
 }
 
+/* ─── Live clock ─────────────────────────────────────────────────────── */
+function startClock() {
+  function tick() {
+    const el = $('#dashTime');
+    if (el) {
+      el.textContent = new Date().toLocaleTimeString('en-GB', {
+        hour: '2-digit', minute: '2-digit'
+      });
+    }
+  }
+  tick();
+  setInterval(tick, 30000);
+}
+
+/* ─── Keyboard shortcut: Cmd/Ctrl+K focuses search ──────────────────── */
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    e.preventDefault();
+    const input = $('#globalSearchInput') || $('#caregiverSearch');
+    if (input) { input.focus(); input.select(); }
+  }
+});
+
+/* Global search: navigate to caregivers with query */
+$('#globalSearchInput')?.addEventListener('input', e => {
+  const q = e.target.value.trim();
+  if (q.length > 1) {
+    navigateTo('caregivers');
+    const cgInput = $('#caregiverSearch');
+    if (cgInput) {
+      cgInput.value = q;
+      cgInput.dispatchEvent(new Event('input'));
+    }
+  }
+});
+
 /* ─── Chart helpers ──────────────────────────────────────────────────── */
 function destroyChart(id) {
   const canvas = document.getElementById(id);
@@ -73,34 +110,63 @@ function destroyChart(id) {
   if (existing) existing.destroy();
 }
 
-const COLORS = ['#2e7d6b','#4db6ac','#8dcfc4','#d4e9e4','#f4b400','#e8a838','#b0d8d0','#7cbcb3','#a8d5cc','#c9e8e4'];
+const COLORS = [
+  '#2e7d6b','#4db6ac','#8dcfc4','#d4e9e4',
+  '#f4b400','#e8a838','#b0d8d0','#7cbcb3','#a8d5cc','#c9e8e4'
+];
+
 const BASE_OPTS = {
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
-    legend: { position: 'bottom', labels: { boxWidth: 9, usePointStyle: true, font: { family: 'DM Sans', size: 11 } } },
+    legend: {
+      position: 'bottom',
+      labels: {
+        boxWidth: 9,
+        usePointStyle: true,
+        padding: 16,
+        font: { family: 'DM Sans', size: 11 },
+      },
+    },
+    tooltip: {
+      backgroundColor: '#173b33',
+      titleFont: { family: 'Manrope', size: 12, weight: '700' },
+      bodyFont:  { family: 'DM Sans', size: 11 },
+      padding: 10,
+      cornerRadius: 8,
+      callbacks: {
+        label: ctx => {
+          const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+          const pct   = total ? Math.round((ctx.parsed / total) * 100) : 0;
+          return ` ${ctx.parsed}  (${pct}%)`;
+        }
+      }
+    },
   },
 };
 
 function makeChart(id, type, labels, values, opts = {}) {
   destroyChart(id);
   const isDoughnut = type === 'doughnut';
-  const isLine = type === 'line';
+  const isLine     = type === 'line';
   return new Chart($(`#${id}`), {
     type,
     data: {
       labels,
       datasets: [{
         data: values,
-        backgroundColor: isDoughnut ? COLORS : (isLine ? 'transparent' : COLORS[1]),
+        backgroundColor: isDoughnut ? COLORS : (isLine ? 'rgba(46,125,107,.08)' : COLORS[0]),
         borderColor: '#2e7d6b',
-        borderWidth: isLine ? 2 : 0,
-        fill: false,
-        tension: 0.35,
-        borderRadius: type === 'bar' ? 5 : 0,
+        borderWidth: isLine ? 2 : (isDoughnut ? 0 : 0),
+        fill: isLine,
+        tension: 0.38,
+        borderRadius: type === 'bar' ? 6 : 0,
         borderSkipped: false,
-        hoverOffset: isDoughnut ? 3 : 0,
-        pointRadius: isLine ? 3 : 0,
+        hoverOffset: isDoughnut ? 4 : 0,
+        pointRadius: isLine ? 4 : 0,
+        pointBackgroundColor: '#2e7d6b',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
       }],
     },
     options: {
@@ -108,14 +174,25 @@ function makeChart(id, type, labels, values, opts = {}) {
       ...opts,
       plugins: {
         ...BASE_OPTS.plugins,
-        legend: { ...BASE_OPTS.plugins.legend, display: isDoughnut },
+        legend: {
+          ...BASE_OPTS.plugins.legend,
+          display: isDoughnut,
+        },
         ...(opts.plugins || {}),
+        tooltip: { ...BASE_OPTS.plugins.tooltip, ...(opts.plugins?.tooltip || {}) },
       },
       scales: isDoughnut ? {} : {
-        x: { grid: { display: false } },
-        y: { grid: { color: '#edf2f1' }, ticks: { stepSize: opts.stepSize } },
+        x: {
+          grid: { display: false },
+          ticks: { font: { family: 'DM Sans', size: 10 } },
+        },
+        y: {
+          grid: { color: '#edf2f1', drawBorder: false },
+          ticks: { font: { family: 'DM Sans', size: 10 }, stepSize: opts.stepSize },
+          beginAtZero: true,
+        },
       },
-      cutout: isDoughnut ? '67%' : undefined,
+      cutout: isDoughnut ? '68%' : undefined,
     },
   });
 }
@@ -128,7 +205,7 @@ function stressLabel(c) {
 }
 function stressClass(c) { const l = stressLabel(c); return l ? l.toLowerCase() : ''; }
 function initials(name) {
-  return String(name).split(' ').map(x => x[0]).filter(Boolean).slice(0, 2).join('');
+  return String(name).split(' ').map(x => x[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -138,60 +215,144 @@ async function loadDashboard() {
   try {
     const data = await api('/dashboard');
     renderKpis(data);
+    renderTodaysPriorities(data);
     renderDashboardCharts(data);
     renderRecentAlerts(data);
+
+    // Update last-import display
+    if (data.last_import_at) {
+      const el = $('#dashLastImport');
+      if (el) {
+        el.textContent = new Date(data.last_import_at).toLocaleDateString('en-GB', {
+          day: 'numeric', month: 'short', year: 'numeric'
+        });
+      }
+    }
+
     // Update sidebar alert badge
-    const upcoming     = Array.isArray(data.upcoming_birthdays) ? data.upcoming_birthdays.length : 0;
-    const grants       = Array.isArray(data.grant_followups_due) ? data.grant_followups_due.length : 0;
-    const checkins     = Array.isArray(data.monthly_checkins_due) ? data.monthly_checkins_due.length : 0;
-    const grantChecks  = Array.isArray(data.grant_checks_due) ? data.grant_checks_due.length : 0;
+    const upcoming    = Array.isArray(data.upcoming_birthdays)   ? data.upcoming_birthdays.length   : 0;
+    const grants      = Array.isArray(data.grant_followups_due)  ? data.grant_followups_due.length  : 0;
+    const checkins    = Array.isArray(data.monthly_checkins_due) ? data.monthly_checkins_due.length : 0;
+    const grantChecks = Array.isArray(data.grant_checks_due)     ? data.grant_checks_due.length     : 0;
     const badge = $('#alertBadge');
     if (badge) badge.textContent = (upcoming + grants + checkins + grantChecks) || '';
   } catch {
-    if ($('#kpiGrid')) $('#kpiGrid').innerHTML = '<p class="empty-state" style="grid-column:1/-1">Could not load dashboard data.</p>';
+    if ($('#kpiGrid'))
+      $('#kpiGrid').innerHTML = emptyStateFull('i-activity', 'Could not load dashboard', 'Check that the server is running and try refreshing.', '');
+    if ($('#prioritiesGrid')) $('#prioritiesGrid').innerHTML = '';
   }
 }
 
+/* ── KPI cards ───────────────────────────────────────────────────────── */
 function renderKpis(data) {
   const total = data.total_caregivers || 0;
   if (total === 0) {
     $('#kpiGrid').innerHTML = `
-      <div style="grid-column:1/-1;text-align:center;padding:48px 24px">
-        <p style="font-size:15px;margin-bottom:16px">No caregiver data found.</p>
-        <button class="button" onclick="navigateTo('import')">Import Excel</button>
+      <div style="grid-column:1/-1">
+        ${emptyStateFull('i-users', 'No caregiver data yet', 'Import an Excel or CSV file to get started.', `<button class="button" onclick="navigateTo('import')">${icon('i-upload')} Import data</button>`)}
       </div>`;
     return;
   }
-  const upcoming = Array.isArray(data.upcoming_birthdays) ? data.upcoming_birthdays.length : 0;
-  const grants   = Array.isArray(data.grant_followups_due) ? data.grant_followups_due.length : 0;
-  const checkins = Array.isArray(data.monthly_checkins_due) ? data.monthly_checkins_due.length : 0;
+  const upcoming   = Array.isArray(data.upcoming_birthdays)   ? data.upcoming_birthdays.length   : 0;
+  const grants     = Array.isArray(data.grant_followups_due)  ? data.grant_followups_due.length  : 0;
+  const checkins   = Array.isArray(data.monthly_checkins_due) ? data.monthly_checkins_due.length : 0;
   const highStress = data.high_stress_count ?? data.high_zbi_count ?? 0;
   const newThis    = data.new_caregivers_this_month ?? 0;
+
   const kpis = [
-    [total,     'Total caregivers',       'i-users',    ''],
-    [upcoming,  'Upcoming birthdays',     'i-calendar', 'This month'],
-    [grants,    'Grant follow-ups due',   'i-bell',     grants > 0 ? `${grants} due` : ''],
-    [checkins,  'Monthly check-ins due',  'i-calendar', ''],
-    [highStress,'High stress caregivers', 'i-target',   highStress > 0 ? 'Review needed' : ''],
-    [newThis,   'New caregivers',         'i-users',    'This month'],
+    { val: total,     label: 'Total caregivers',      icon: 'i-users',    trend: newThis > 0 ? `+${newThis} this month` : null,        cls: '' },
+    { val: upcoming,  label: 'Upcoming birthdays',    icon: 'i-calendar', trend: 'This month',                                         cls: '' },
+    { val: grants,    label: 'Grant follow-ups due',  icon: 'i-bell',     trend: grants  > 0 ? `${grants} due`    : 'All clear',       cls: grants  > 0 ? 'warn' : '' },
+    { val: checkins,  label: 'Monthly check-ins due', icon: 'i-clock',    trend: checkins > 0 ? `${checkins} pending` : 'All clear',   cls: checkins > 0 ? 'warn' : '' },
+    { val: highStress,label: 'High stress caregivers',icon: 'i-activity', trend: highStress > 0 ? 'Review needed' : 'Within range',    cls: highStress > 0 ? 'warn' : '' },
+    { val: newThis,   label: 'New caregivers',        icon: 'i-trending', trend: 'This month',                                         cls: '' },
   ];
-  $('#kpiGrid').innerHTML = kpis.map(([val, label, ico, trend]) =>
+  $('#kpiGrid').innerHTML = kpis.map(k =>
     `<article class="panel kpi-card">
-      <div class="metric-icon">${icon(ico)}</div>
-      <strong>${esc(val)}</strong>
-      <span>${esc(label)}</span>
-      ${trend ? `<em class="trend">${esc(trend)}</em>` : ''}
+      <div class="metric-icon">${icon(k.icon)}</div>
+      <strong>${esc(k.val)}</strong>
+      <span>${esc(k.label)}</span>
+      ${k.trend ? `<em class="trend ${k.cls}">${esc(k.trend)}</em>` : ''}
     </article>`
   ).join('');
 }
 
+/* ── Today's priorities ──────────────────────────────────────────────── */
+function renderTodaysPriorities(data) {
+  const el = $('#prioritiesGrid');
+  if (!el) return;
+
+  const birthdaysToday = data.birthdays_today     || [];
+  const grantsDue      = data.grant_followups_due || data.grant_checks_due || [];
+  const checkinsDue    = data.monthly_checkins_due || data.overdue_checkins || [];
+  const highStress     = data.high_stress_count ?? 0;
+  const upcoming       = data.upcoming_birthdays || [];
+
+  const cards = [];
+
+  // Birthdays today (urgent)
+  const bClass = birthdaysToday.length > 0 ? 'urgent' : '';
+  const bNames = birthdaysToday.slice(0, 3).map(a => (a.caregiver?.name || '—')).join(', ');
+  cards.push(`
+    <article class="panel priority-card ${bClass}">
+      <div class="priority-card-head">
+        <div class="priority-card-icon">${icon('i-calendar')}</div>
+        <h3>Birthdays today</h3>
+      </div>
+      <span class="priority-count">${birthdaysToday.length}</span>
+      <span class="priority-label">caregiver${birthdaysToday.length !== 1 ? 's' : ''} celebrating today</span>
+      ${bNames ? `<p class="priority-names">${esc(bNames)}${birthdaysToday.length > 3 ? ` +${birthdaysToday.length - 3} more` : ''}</p>` : '<p class="priority-names" style="color:var(--muted)">No birthdays today</p>'}
+      <div class="priority-card-actions">
+        <button class="button secondary" data-go="alerts">View</button>
+        ${birthdaysToday.length > 0 ? `<button class="button" data-toast="Opening birthday messages…">${icon('i-bell')} Notify</button>` : ''}
+      </div>
+    </article>`);
+
+  // Grant follow-ups (warning if any)
+  const gClass = grantsDue.length > 0 ? 'warning' : '';
+  const gNames = grantsDue.slice(0, 3).map(a => (a.caregiver?.name || '—')).join(', ');
+  cards.push(`
+    <article class="panel priority-card ${gClass}">
+      <div class="priority-card-head">
+        <div class="priority-card-icon">${icon('i-target')}</div>
+        <h3>Grant follow-ups</h3>
+      </div>
+      <span class="priority-count">${grantsDue.length}</span>
+      <span class="priority-label">follow-up${grantsDue.length !== 1 ? 's' : ''} pending</span>
+      ${gNames ? `<p class="priority-names">${esc(gNames)}${grantsDue.length > 3 ? ` +${grantsDue.length - 3} more` : ''}</p>` : '<p class="priority-names" style="color:var(--muted)">No follow-ups due</p>'}
+      <div class="priority-card-actions">
+        <button class="button secondary" data-go="alerts">View</button>
+      </div>
+    </article>`);
+
+  // Monthly check-ins (warning if any)
+  const cClass = checkinsDue.length > 0 ? 'warning' : '';
+  const cNames = checkinsDue.slice(0, 3).map(a => (a.caregiver?.name || '—')).join(', ');
+  cards.push(`
+    <article class="panel priority-card ${cClass}">
+      <div class="priority-card-head">
+        <div class="priority-card-icon">${icon('i-check')}</div>
+        <h3>Monthly check-ins</h3>
+      </div>
+      <span class="priority-count">${checkinsDue.length}</span>
+      <span class="priority-label">check-in${checkinsDue.length !== 1 ? 's' : ''} due</span>
+      ${cNames ? `<p class="priority-names">${esc(cNames)}${checkinsDue.length > 3 ? ` +${checkinsDue.length - 3} more` : ''}</p>` : '<p class="priority-names" style="color:var(--muted)">No check-ins due</p>'}
+      <div class="priority-card-actions">
+        <button class="button secondary" data-go="alerts">View</button>
+      </div>
+    </article>`);
+
+  el.innerHTML = cards.join('');
+}
+
+/* ── Charts ──────────────────────────────────────────────────────────── */
 function renderDashboardCharts(data) {
   if (!data.total_caregivers) return;
   const ag   = data.age_distribution || data.age_groups || {};
   const lang = data.language_distribution || data.languages || {};
   makeChart('ageChart', 'bar',
-    ['Under 40','40–49','50–59','60–69','70+'],
-    [ag.under_40||0, ag['40_49']||0, ag['50_59']||0, ag['60_69']||0, ag['70_plus']||0],
+    ['Under 40', '40–49', '50–59', '60–69', '70+'],
+    [ag.under_40 || 0, ag['40_49'] || 0, ag['50_59'] || 0, ag['60_69'] || 0, ag['70_plus'] || 0],
     { plugins: { legend: { display: false } } }
   );
   makeChart('languageChart', 'doughnut', Object.keys(lang), Object.values(lang));
@@ -202,9 +363,9 @@ function renderStressBreakdown(data) {
   const panel = $('#stressPanel');
   const el    = $('#stressBreakdown');
   if (!panel || !el) return;
-  const high = data.high_stress_count     ?? 0;
-  const mod  = data.moderate_stress_count ?? 0;
-  const low  = data.low_stress_count      ?? 0;
+  const high  = data.high_stress_count     ?? 0;
+  const mod   = data.moderate_stress_count ?? 0;
+  const low   = data.low_stress_count      ?? 0;
   const total = high + mod + low;
   if (total === 0) { panel.style.display = 'none'; return; }
   panel.style.display = '';
@@ -229,31 +390,37 @@ function renderStressBreakdown(data) {
     <p class="stress-footnote">${total} of ${data.total_caregivers ?? total} caregivers assessed · scores from ZBI column</p>`;
 }
 
+/* ── Recent alerts ───────────────────────────────────────────────────── */
 function renderRecentAlerts(data) {
   const all = [
-    ...(data.birthdays_today || []),
-    ...(data.grant_checks_due || []),
-    ...(data.grant_followups_due || []),
-    ...(data.monthly_checkins_due || []),
-    ...(data.upcoming_birthdays || []),
-  ].slice(0, 3);
+    ...(data.birthdays_today       || []),
+    ...(data.grant_checks_due      || []),
+    ...(data.grant_followups_due   || []),
+    ...(data.monthly_checkins_due  || []),
+    ...(data.upcoming_birthdays    || []),
+  ].slice(0, 4);
   $('#recentAlerts').innerHTML = all.length
     ? all.map(smallAlertHtml).join('')
-    : '<p class="empty-state" style="padding:18px 0;color:var(--muted)">No alerts today.</p>';
+    : `<div style="padding:28px 0;text-align:center;color:var(--muted)">
+        ${icon('i-check')} No alerts today — you're all caught up.
+       </div>`;
 }
 
 /* ══════════════════════════════════════════════════════════════════════
    ALERTS
 ══════════════════════════════════════════════════════════════════════ */
 async function loadAlerts() {
+  const container = $('#alertSections');
+  if (container) container.innerHTML = '<div style="padding:32px 0;color:var(--muted);text-align:center">Loading alerts…</div>';
   try {
     const data = await api('/alerts');
     renderAlerts(data);
-    const total = Object.values(data).reduce((s, arr) => s + arr.length, 0);
+    const total = Object.values(data).reduce((s, arr) => Array.isArray(arr) ? s + arr.length : s, 0);
     const badge = $('#alertBadge');
     if (badge) badge.textContent = total || '';
   } catch {
-    if ($('#alertSections')) $('#alertSections').innerHTML = '<p class="empty-state">Could not load alerts.</p>';
+    if ($('#alertSections'))
+      $('#alertSections').innerHTML = emptyStateFull('i-bell', 'Could not load alerts', 'Please refresh the page and try again.', '');
   }
 }
 
@@ -264,7 +431,7 @@ function alertPriority(a) {
 }
 
 function smallAlertHtml(a) {
-  const c   = a.caregiver || {};
+  const c    = a.caregiver || {};
   const name = c.name || '—';
   const ini  = initials(name);
   const pri  = alertPriority(a);
@@ -276,7 +443,7 @@ function smallAlertHtml(a) {
     <span class="avatar ${cls}">${esc(ini)}</span>
     <div><h3>${esc(name)}</h3><p>${esc(a.message || '')}</p></div>
     <span class="alert-date">${esc(due)}</span>
-    <span class="badge ${pri}">${pri} priority</span>
+    <span class="badge ${pri}">${pri === 'high' ? 'Urgent' : pri === 'medium' ? 'Soon' : 'Low'}</span>
     <button class="button secondary view-alert" data-id="${esc(c.id || '')}">View</button>
   </div>`;
 }
@@ -289,18 +456,19 @@ function alertCardHtml(a) {
   const due  = a.due_date
     ? new Date(a.due_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
     : 'Today';
+  const avatarCls = pri === 'high' ? 'pink' : pri === 'medium' ? 'yellow' : 'teal';
   return `<article class="panel alert-card">
     <div class="alert-card-head">
-      <span class="badge ${pri}">${pri} priority</span>
-      <button class="icon-btn">${icon('i-dots')}</button>
+      <span class="badge ${pri}">${pri === 'high' ? 'Urgent' : pri === 'medium' ? 'Upcoming' : 'Low'}</span>
+      <button class="icon-btn" aria-label="More options">${icon('i-dots')}</button>
     </div>
     <div class="alert-person">
-      <span class="avatar teal">${esc(ini)}</span>
+      <span class="avatar ${avatarCls}">${esc(ini)}</span>
       <div><strong>${esc(name)}</strong><span>${esc(a.message || '')}</span></div>
     </div>
-    <div class="due">Due date: <strong>${esc(due)}</strong></div>
+    <div class="due">Due: <strong>${esc(due)}</strong></div>
     <div class="alert-card-actions">
-      <button class="button secondary view-alert" data-id="${esc(c.id || '')}">View</button>
+      <button class="button secondary view-alert" data-id="${esc(c.id || '')}">View profile</button>
       <button class="button secondary" data-toast="Marked as completed.">Complete</button>
       <button class="button secondary" data-toast="Email composer opened.">Email</button>
       <button class="button secondary" data-toast="Call details ready.">Call</button>
@@ -310,18 +478,28 @@ function alertCardHtml(a) {
 
 function renderAlerts(data) {
   const groups = [
-    { key: 'birthdays_today',    label: "Today's birthdays" },
-    { key: 'upcoming_birthdays', label: 'Upcoming birthdays' },
-    { key: 'grant_checks',       label: 'Grant check dates' },
-    { key: 'grant_followups',    label: 'Grant follow-ups' },
-    { key: 'overdue_checkins',   label: 'Monthly check-ins' },
+    { key: 'birthdays_today',    label: "Today's birthdays",   urgent: true  },
+    { key: 'upcoming_birthdays', label: 'Upcoming birthdays',  urgent: false },
+    { key: 'grant_checks',       label: 'Grant check dates',   urgent: false },
+    { key: 'grant_followups',    label: 'Grant follow-ups',    urgent: true  },
+    { key: 'overdue_checkins',   label: 'Monthly check-ins',   urgent: true  },
   ];
   $('#alertSections').innerHTML = groups.map(g => {
     const items = data[g.key] || [];
     const cards = items.length
       ? items.map(alertCardHtml).join('')
-      : `<p class="empty-state" style="padding:20px 0;color:var(--muted)">No ${esc(g.label.toLowerCase())} at this time.</p>`;
-    return `<div class="alert-group"><h2>${esc(g.label)}</h2><div class="alert-cards">${cards}</div></div>`;
+      : `<div style="padding:28px 0;color:var(--muted);font-size:13px">
+           No ${esc(g.label.toLowerCase())} at this time — all clear.
+         </div>`;
+    const countBadge = items.length
+      ? `<span class="badge ${g.urgent ? 'high' : 'neutral'}" style="margin-left:10px">${items.length}</span>`
+      : '';
+    return `<div class="alert-group">
+      <div class="alert-group-header">
+        <h2>${esc(g.label)}${countBadge}</h2>
+      </div>
+      <div class="alert-cards">${cards}</div>
+    </div>`;
   }).join('');
 }
 
@@ -335,13 +513,24 @@ async function loadCaregivers() {
   const params = new URLSearchParams({ page: cgState.page, per_page: cgState.per_page });
   if (cgState.search)   params.set('search',   cgState.search);
   if (cgState.language) params.set('language', cgState.language);
+
+  // Show skeleton while loading
+  const tbody = $('#caregiverTable');
+  if (tbody && !cgState.search) {
+    tbody.innerHTML = Array(5).fill(0).map(() => `
+      <tr>${Array(10).fill(0).map(() =>
+        `<td><span class="skeleton" style="display:block;height:14px;width:80%;border-radius:4px">&nbsp;</span></td>`
+      ).join('')}</tr>`).join('');
+  }
+
   try {
     const data = await api(`/caregivers?${params}`);
     renderCaregiverTable(data.items, data.pagination);
   } catch {
-    if ($('#caregiverTable'))
-      $('#caregiverTable').innerHTML =
-        '<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--muted)">Could not load caregivers.</td></tr>';
+    if (tbody)
+      tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted)">
+        ${icon('i-activity')} Could not load caregivers. Please refresh.
+      </td></tr>`;
   }
 }
 
@@ -355,14 +544,16 @@ function caregiverRow(c) {
     ? (['Dementia','Mobility','Mental health','Chronic illness']
         .find(d => c.situation.toLowerCase().includes(d.toLowerCase())) || '—')
     : '—';
-  const sl     = stressLabel(c);
-  const sc     = stressClass(c);
+  const sl    = stressLabel(c);
+  const sc    = stressClass(c);
   const nextChk = c.check_when
     ? new Date(c.check_when).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
     : '—';
+  const avatarColors = ['teal', 'pink', 'yellow'];
+  const avatarCls = avatarColors[Math.abs(c.name.charCodeAt(0)) % avatarColors.length];
   return `<tr>
     <td><div class="person-cell">
-      <span class="mini-avatar">${esc(ini)}</span>
+      <span class="mini-avatar ${avatarCls}">${esc(ini)}</span>
       <span>${esc(c.name)}<small>${esc(c.centre || '')}</small></span>
     </div></td>
     <td>${esc(c.phone || '—')}</td>
@@ -382,9 +573,14 @@ function caregiverRow(c) {
 
 function renderCaregiverTable(items, pagination) {
   if (!items?.length) {
-    $('#caregiverTable').innerHTML = `<tr><td colspan="9" style="text-align:center;padding:48px;color:var(--muted)">
-      No caregivers found.${!cgState.search && !cgState.language
-        ? '<br><button class="button" style="margin-top:12px" onclick="navigateTo(\'import\')">Import Excel</button>' : ''}
+    $('#caregiverTable').innerHTML = `<tr><td colspan="10">
+      ${emptyStateFull('i-users',
+        cgState.search ? 'No results found' : 'No caregivers yet',
+        cgState.search ? `No caregivers match "${esc(cgState.search)}"` : 'Import an Excel or CSV file to get started.',
+        !cgState.search && !cgState.language
+          ? `<button class="button" onclick="navigateTo('import')">${icon('i-upload')} Import data</button>`
+          : ''
+      )}
     </td></tr>`;
     $('#paginationInfo').textContent = 'No results';
     $('#paginationBtns').innerHTML = '';
@@ -409,12 +605,18 @@ function renderCaregiverTable(items, pagination) {
 ══════════════════════════════════════════════════════════════════════ */
 async function openProfile(id) {
   if (!id) return;
+  const drawer = $('#profileDrawer');
+  const content = $('#profileContent');
+  if (content) content.innerHTML = `<div style="padding:60px 0;text-align:center;color:var(--muted)">Loading profile…</div>`;
+  drawer?.classList.add('open');
+  $('#drawerBackdrop')?.classList.add('open');
   try {
     const c = await api(`/caregiver/${id}`);
     renderProfile(c);
-    $('#profileDrawer').classList.add('open');
-    $('#drawerBackdrop').classList.add('open');
-  } catch { toast('Could not load caregiver profile.'); }
+  } catch {
+    if (content) content.innerHTML = `<div style="padding:60px 0;text-align:center;color:var(--muted)">Could not load profile.</div>`;
+    toast('Could not load caregiver profile.');
+  }
 }
 
 function tagChips(items) {
@@ -425,26 +627,30 @@ function tagChips(items) {
 function renderProfile(c) {
   const ini     = initials(c.name);
   const langs   = Array.isArray(c.language) ? c.language : (c.language ? [c.language] : []);
-  const hobbies = Array.isArray(c.hobbies) ? c.hobbies : (c.hobbies ? [c.hobbies] : []);
-  const grants  = Array.isArray(c.grants)  ? c.grants  : (c.grants  ? [c.grants]  : []);
-  const needs   = Array.isArray(c.needs)   ? c.needs   : (c.needs   ? [c.needs]   : []);
+  const hobbies = Array.isArray(c.hobbies)  ? c.hobbies  : (c.hobbies  ? [c.hobbies]  : []);
+  const grants  = Array.isArray(c.grants)   ? c.grants   : (c.grants   ? [c.grants]   : []);
+  const needs   = Array.isArray(c.needs)    ? c.needs    : (c.needs    ? [c.needs]    : []);
   const bday    = c.birthday
     ? new Date(c.birthday).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
     : '—';
   const sl      = stressLabel(c) || '—';
+  const sc      = stressClass(c);
   const nextChk = c.check_when
     ? new Date(c.check_when).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
     : '—';
   const reminderType = c.check_what
     ? (c.check_what.toLowerCase().includes('monthly') ? 'Monthly check-in' : 'Grant follow-up')
     : '—';
+
   $('#profileContent').innerHTML = `
     <div class="profile-hero">
       <div class="profile-avatar">${esc(ini)}</div>
       <h2>${esc(c.name)}</h2>
-      <p>${esc(c.centre || '')} centre</p>
-      <button class="button secondary" style="margin-top:15px" data-toast="Edit form will be available in a future update.">Edit profile</button>
+      <p>${esc(c.centre || '')}${c.centre ? ' Centre' : ''}</p>
+      ${sl !== '—' ? `<span class="badge ${sc === 'high' ? 'high' : sc === 'moderate' ? 'medium' : 'low'}" style="margin-top:8px">${esc(sl)} stress</span>` : ''}
+      <button class="button secondary" style="margin-top:16px" data-toast="Edit form will be available in a future update.">${icon('i-save')} Edit profile</button>
     </div>
+
     <div class="profile-section">
       <h3>Contact details</h3>
       <div class="detail-grid">
@@ -454,6 +660,7 @@ function renderProfile(c) {
         <div>Centre<strong>${esc(c.centre || '—')}</strong></div>
       </div>
     </div>
+
     <div class="profile-section">
       <h3>Care profile</h3>
       <div class="detail-grid">
@@ -461,13 +668,28 @@ function renderProfile(c) {
         <div>Needs<strong>${tagChips(needs)}</strong></div>
         <div>Hobbies &amp; interests<strong>${tagChips(hobbies)}</strong></div>
         <div>Grants<strong>${tagChips(grants)}</strong></div>
-        <div>Stress level<strong>${esc(sl)}${c.stress_score != null ? ` <em style="color:var(--muted);font-size:12px">(score: ${c.stress_score})</em>` : ''}</strong></div>
-        <div>Next check-in<strong>${esc(nextChk)}</strong></div>
-        <div>Reminder type<strong>${esc(reminderType)}</strong></div>
       </div>
     </div>
-    ${c.check_what ? `<div class="profile-section"><h3>Check-in notes</h3><p style="color:var(--muted);font-size:13px;margin:0">${esc(c.check_what)}</p></div>` : ''}
-    ${c.flag ? `<div class="profile-section"><h3>Flag</h3><p style="margin:0"><span class="badge high">${esc(c.flag)}</span></p></div>` : ''}`;
+
+    <div class="profile-section">
+      <h3>Wellbeing</h3>
+      <div class="detail-grid">
+        <div>Stress level<strong>${sl !== '—' ? `<span class="stress ${sc}">${esc(sl)}</span>` : '—'}${c.stress_score != null ? ` <em style="color:var(--muted);font-size:11px">(ZBI: ${c.stress_score})</em>` : ''}</strong></div>
+        <div>Next check-in<strong>${esc(nextChk)}</strong></div>
+        <div>Reminder type<strong>${esc(reminderType)}</strong></div>
+        ${c.check_what ? `<div>Notes<strong style="font-weight:400;color:var(--muted)">${esc(c.check_what)}</strong></div>` : ''}
+      </div>
+    </div>
+
+    ${c.flag ? `<div class="profile-section"><h3>Flag</h3><p style="margin:0"><span class="badge high">${esc(c.flag)}</span></p></div>` : ''}
+
+    <div class="profile-section" style="border-bottom:0">
+      <h3>Activity</h3>
+      <div class="timeline">
+        <div><strong>Record created</strong><p>Added to CareCircle database</p></div>
+        ${c.check_when ? `<div><strong>Next check-in scheduled</strong><p>${esc(nextChk)}</p></div>` : ''}
+      </div>
+    </div>`;
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -479,21 +701,23 @@ async function loadImportPreview() {
     renderImportPreview(data.items);
   } catch {
     if ($('#importTable'))
-      $('#importTable').innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--muted)">No import data yet.</td></tr>';
+      $('#importTable').innerHTML = `<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--muted)">No import data yet.</td></tr>`;
   }
 }
 
 function renderImportPreview(items) {
   if (!items?.length) {
-    $('#importTable').innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--muted)">No import data yet. Upload a file to see a preview.</td></tr>';
+    $('#importTable').innerHTML = `<tr><td colspan="8">
+      ${emptyStateFull('i-upload', 'No data imported yet', 'Upload a CSV or Excel file to see a preview here.', '')}
+    </td></tr>`;
     if ($('#importRowCount')) $('#importRowCount').textContent = '0 rows';
     return;
   }
   if ($('#importRowCount')) $('#importRowCount').textContent = `${items.length} rows`;
   $('#importTable').innerHTML = items.map(c => {
-    const langs   = Array.isArray(c.language) ? c.language.join(', ') : (c.language || '—');
-    const hobbies = Array.isArray(c.hobbies)  ? c.hobbies.slice(0, 3).join(', ')  : (c.hobbies  || '—');
-    const needs   = Array.isArray(c.needs)    ? c.needs.slice(0, 2).join(', ')    : (c.needs    || '—');
+    const langs   = Array.isArray(c.language) ? c.language.join(', ')         : (c.language || '—');
+    const hobbies = Array.isArray(c.hobbies)  ? c.hobbies.slice(0,3).join(', ') : (c.hobbies  || '—');
+    const needs   = Array.isArray(c.needs)    ? c.needs.slice(0,2).join(', ')   : (c.needs    || '—');
     const bday    = c.birthday
       ? new Date(c.birthday).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
       : '—';
@@ -502,7 +726,7 @@ function renderImportPreview(items) {
           .find(d => c.situation.toLowerCase().includes(d.toLowerCase())) || '—')
       : '—';
     return `<tr>
-      <td>${esc(c.name)}</td><td>${esc(c.phone || '—')}</td><td>${esc(bday)}</td>
+      <td>${esc(c.name)}</td><td>${esc(c.phone||'—')}</td><td>${esc(bday)}</td>
       <td>${esc(langs)}</td><td>${esc(hobbies)}</td><td>${esc(domain)}</td>
       <td>${esc(needs)}</td><td><span class="badge success">Active</span></td>
     </tr>`;
@@ -511,24 +735,30 @@ function renderImportPreview(items) {
 
 async function uploadFile(file) {
   const ext = file.name.split('.').pop().toLowerCase();
-  if (!['csv','xls','xlsx'].includes(ext)) { toast('Only .csv, .xls, and .xlsx files are supported.'); return; }
+  if (!['csv','xls','xlsx'].includes(ext)) {
+    toast('Only .csv, .xls, and .xlsx files are supported.');
+    return;
+  }
   const statusEl = $('#importStatus');
   statusEl.style.display = 'flex';
-  statusEl.innerHTML = `<span class="file-icon">${esc(ext.toUpperCase())}</span><div><strong>${esc(file.name)}</strong><p>Uploading…</p></div>`;
+  statusEl.innerHTML = `<span class="file-icon">${esc(ext.toUpperCase())}</span>
+    <div><strong>${esc(file.name)}</strong><p>Uploading…</p></div>`;
   const form = new FormData();
   form.append('file', file);
   try {
     const result = await api('/upload', { method: 'POST', body: form });
-    const now = new Date().toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const now = new Date().toLocaleString('en-GB', {
+      day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
     statusEl.innerHTML = `
       <span class="file-icon">${esc(ext.toUpperCase())}</span>
-      <div><strong>${esc(file.name)}</strong>
-        <p>Imported ${esc(now)} · ${result.imported} imported, ${result.updated} updated, ${result.skipped} skipped</p>
+      <div>
+        <strong>${esc(file.name)}</strong>
+        <p>Imported ${esc(now)} · ${result.imported} new, ${result.updated} updated, ${result.skipped} skipped</p>
       </div>
       <span class="badge success">Imported</span>`;
     toast(`Import complete: ${result.imported} new, ${result.updated} updated, ${result.skipped} skipped.`);
     if (result.preview?.length) renderImportPreview(result.preview);
-    // Force caregivers page to reload on next visit
     delete _loaded['caregivers'];
     loadDashboard();
   } catch (e) {
@@ -562,9 +792,8 @@ function initUpload() {
 function renderRecommendations(items) {
   if (!items?.length) {
     $('#recommendationsGrid').innerHTML = `
-      <div style="grid-column:1/-1;text-align:center;padding:48px 24px">
-        <p style="font-size:15px;color:var(--muted)">No recommendations generated yet.</p>
-        <p style="font-size:13px;color:var(--muted);margin-top:8px">Fill in the workshop builder above and click Generate.</p>
+      <div style="grid-column:1/-1">
+        ${emptyStateFull('i-target', 'No recommendations yet', 'Fill in the workshop builder above and click Generate.', '')}
       </div>`;
     return;
   }
@@ -575,13 +804,16 @@ function renderRecommendations(items) {
     const stars   = Math.round((pct / 130) * 5);
     const starStr = '★'.repeat(stars) + '☆'.repeat(5 - stars);
     const langs   = Array.isArray(c.language) ? c.language.join(', ') : (c.language || '');
-    const hobbies = Array.isArray(c.hobbies) ? c.hobbies.slice(0, 2) : [];
+    const hobbies = Array.isArray(c.hobbies)  ? c.hobbies.slice(0, 2) : [];
     const age     = c.birthday ? new Date().getFullYear() - new Date(c.birthday).getFullYear() : null;
     return `<article class="panel recommend-card">
       <span class="score">${starStr}</span>
       <div class="recommend-top">
         <span class="avatar teal">${esc(ini)}</span>
-        <div><h3>${esc(c.name)}</h3><p>${age ? age + ' years' : ''}${age && langs ? ' · ' : ''}${esc(langs)}</p></div>
+        <div>
+          <h3>${esc(c.name)}</h3>
+          <p>${age ? age + ' yrs' : ''}${age && langs ? ' · ' : ''}${esc(langs)}</p>
+        </div>
       </div>
       ${hobbies.map(h => `<span class="pill">${esc(h)}</span>`).join('')}
       <div class="reason">
@@ -601,6 +833,9 @@ async function submitRecommendations(form) {
   const language   = selects[1]?.value || selects[0]?.value || '';
   const maximum_participants = parseInt(numInput?.value) || 12;
   if (!workshop) { toast('Please enter a workshop title.'); return; }
+
+  const btn = form.querySelector('.generate');
+  if (btn) { btn.disabled = true; btn.textContent = 'Generating…'; }
   try {
     const result = await api('/recommendations', {
       method: 'POST',
@@ -611,18 +846,25 @@ async function submitRecommendations(form) {
     if ($('#recommendCount'))
       $('#recommendCount').textContent = `${result.count} caregiver${result.count !== 1 ? 's' : ''} matched to your criteria`;
     toast(`${result.count} recommendation${result.count !== 1 ? 's' : ''} generated.`);
-  } catch (e) { toast(e.message || 'Could not generate recommendations.'); }
+  } catch (e) {
+    toast(e.message || 'Could not generate recommendations.');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = `${icon('i-zap')}Generate recommendations`; }
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════════════
    ANALYTICS
 ══════════════════════════════════════════════════════════════════════ */
 async function loadAnalytics() {
+  const grid = $('#analyticsGrid');
+  if (grid) grid.innerHTML = '<div style="padding:40px;color:var(--muted);text-align:center;grid-column:1/-1">Loading analytics…</div>';
   try {
     const data = await api('/analytics');
     renderAnalytics(data);
   } catch {
-    if ($('#analyticsGrid')) $('#analyticsGrid').innerHTML = '<p class="empty-state">Could not load analytics data.</p>';
+    if ($('#analyticsGrid'))
+      $('#analyticsGrid').innerHTML = emptyStateFull('i-chart', 'Could not load analytics', 'Please refresh the page.', '');
   }
 }
 
@@ -637,22 +879,22 @@ function renderAnalytics(data) {
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
   const specs = [
-    { title: 'Age distribution',     type: 'bar',      labels: ['Under 40','40–49','50–59','60–69','70+'], values: [ag.under_40||0,ag['40_49']||0,ag['50_59']||0,ag['60_69']||0,ag['70_plus']||0] },
-    { title: 'Languages',            type: 'doughnut', labels: Object.keys(lang),            values: Object.values(lang) },
-    { title: 'Stress levels',        type: 'doughnut', labels: Object.keys(stress),          values: Object.values(stress) },
-    { title: 'Caregivers by centre', type: 'bar',      labels: Object.keys(centre).slice(0,8), values: Object.values(centre).slice(0,8) },
-    { title: 'Grant types',          type: 'doughnut', labels: Object.keys(grants).slice(0,8), values: Object.values(grants).slice(0,8) },
-    { title: 'Monthly follow-ups',   type: 'bar',      labels: months, values: months.map((_,i) => mfol[String(i+1)]||0) },
-    { title: 'Birthdays by month',   type: 'line',     labels: months, values: months.map((_,i) => bmonth[String(i+1)]||0) },
+    { title: 'Age distribution',     sub: 'By age group',              type: 'bar',      labels: ['Under 40','40–49','50–59','60–69','70+'], values: [ag.under_40||0,ag['40_49']||0,ag['50_59']||0,ag['60_69']||0,ag['70_plus']||0] },
+    { title: 'Languages',            sub: 'Preferred language',         type: 'doughnut', labels: Object.keys(lang),              values: Object.values(lang) },
+    { title: 'Stress levels',        sub: 'ZBI assessment results',     type: 'doughnut', labels: Object.keys(stress),            values: Object.values(stress) },
+    { title: 'Caregivers by centre', sub: 'Distribution across centres',type: 'bar',      labels: Object.keys(centre).slice(0,8), values: Object.values(centre).slice(0,8) },
+    { title: 'Grant types',          sub: 'Grant programme breakdown',  type: 'doughnut', labels: Object.keys(grants).slice(0,8), values: Object.values(grants).slice(0,8) },
+    { title: 'Monthly follow-ups',   sub: 'Due by month',               type: 'bar',      labels: months, values: months.map((_,i) => mfol[String(i+1)]||0) },
+    { title: 'Birthdays by month',   sub: 'Celebration planning',       type: 'line',     labels: months, values: months.map((_,i) => bmonth[String(i+1)]||0) },
   ].filter(s => s.values.some(v => v > 0));
 
   if (!specs.length) {
-    $('#analyticsGrid').innerHTML = '<p class="empty-state" style="grid-column:1/-1">No analytics data yet. Import caregivers first.</p>';
+    $('#analyticsGrid').innerHTML = `<div style="grid-column:1/-1">${emptyStateFull('i-chart', 'No analytics data yet', 'Import caregivers first to see insights.', `<button class="button" onclick="navigateTo('import')">${icon('i-upload')} Import data</button>`)}</div>`;
     return;
   }
   $('#analyticsGrid').innerHTML = specs.map((s, i) =>
     `<article class="panel analytics-card">
-      <div class="panel-heading"><div><h2>${esc(s.title)}</h2><p>Current caregiver records</p></div></div>
+      <div class="panel-heading"><div><h2>${esc(s.title)}</h2><p>${esc(s.sub)}</p></div></div>
       <div class="chart-wrap"><canvas id="aC${i}"></canvas></div>
     </article>`
   ).join('');
@@ -713,8 +955,8 @@ function renderSettings(s) {
       <h2>Data management</h2>
       <p>Export, import, or clear your caregiver database.</p>
       <div style="display:grid;gap:9px">
-        <a class="button secondary" href="/settings/export" download>Export database</a>
-        <button class="button secondary" id="clearDbBtn">Clear database</button>
+        <a class="button secondary" href="/settings/export" download>${icon('i-download')} Export database</a>
+        <button class="button secondary" id="clearDbBtn" style="color:#c0392b;border-color:#f5c6c4">${icon('i-close')} Clear database</button>
       </div>
     </article>
 
@@ -722,8 +964,8 @@ function renderSettings(s) {
     <article class="panel setting-section">
       <h2>Backup</h2>
       <p>Create and restore database snapshots.</p>
-      <div style="display:grid;gap:9px;margin-bottom:16px">
-        <button class="button secondary" id="createBackupBtn">Create backup now</button>
+      <div style="display:grid;gap:9px;margin-bottom:18px">
+        <button class="button secondary" id="createBackupBtn">${icon('i-save')} Create backup now</button>
       </div>
       <h3 style="margin-bottom:10px;font-size:12px;color:var(--muted)">Existing backups</h3>
       <div id="backupList" style="font-size:12px;color:var(--muted)">Loading…</div>
@@ -733,14 +975,13 @@ function renderSettings(s) {
     <article class="panel setting-section about">
       <h2>About CareCircle</h2>
       <p>Caregiver Management System · Version 1.0.0</p>
-      <p style="margin-top:4px">All data is stored locally in SQLite. No cloud services are used.</p>
-      <a href="#" data-toast="Support contact details copied.">Contact support</a>
+      <p style="margin-top:4px;font-size:12.5px">All data is stored locally in SQLite. No cloud services are used.</p>
+      <a href="#" data-toast="Support contact details copied." style="margin-top:12px;display:inline-block">Contact support</a>
     </article>`;
 
   loadBackups();
   applyTheme(s.theme || 'light');
 
-  // Theme button clicks
   $$('.theme-choice').forEach(btn => {
     btn.addEventListener('click', () => {
       $$('.theme-choice').forEach(b => b.classList.remove('active'));
@@ -749,7 +990,6 @@ function renderSettings(s) {
     });
   });
 
-  // Clear database
   $('#clearDbBtn')?.addEventListener('click', async () => {
     if (!confirm('This will permanently delete ALL caregiver records. Continue?')) return;
     try {
@@ -760,7 +1000,6 @@ function renderSettings(s) {
     } catch (e) { toast(e.message); }
   });
 
-  // Create backup
   $('#createBackupBtn')?.addEventListener('click', async () => {
     try {
       const r = await api('/settings/backup', { method: 'POST' });
@@ -795,22 +1034,20 @@ function applyTheme(theme) {
 async function saveSettings() {
   const theme = document.querySelector('.theme-choice.active')?.dataset.theme || 'light';
   const data = {
-    app_name:          $('#s_app_name')?.value || 'CareCircle',
-    default_centre:    $('#s_default_centre')?.value || '',
-    notify_birthdays:  String($('#s_notify_birthdays')?.checked ?? true),
-    notify_grants:     String($('#s_notify_grants')?.checked ?? true),
-    notify_checkins:   String($('#s_notify_checkins')?.checked ?? true),
-    notify_email:      String($('#s_notify_email')?.checked ?? false),
+    app_name:         $('#s_app_name')?.value || 'CareCircle',
+    default_centre:   $('#s_default_centre')?.value || '',
+    notify_birthdays: String($('#s_notify_birthdays')?.checked ?? true),
+    notify_grants:    String($('#s_notify_grants')?.checked ?? true),
+    notify_checkins:  String($('#s_notify_checkins')?.checked ?? true),
+    notify_email:     String($('#s_notify_email')?.checked ?? false),
     theme,
-    accent_colour:     $('#s_accent_colour')?.value || '#2e7d6b',
+    accent_colour:    $('#s_accent_colour')?.value || '#2e7d6b',
   };
   try {
     await api('/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
     _settings = data;
     applyTheme(theme);
-    // Apply accent colour
-    const accent = data.accent_colour;
-    document.documentElement.style.setProperty('--green', accent);
+    document.documentElement.style.setProperty('--green', data.accent_colour);
     toast('Settings saved successfully.');
   } catch (e) { toast(e.message); }
 }
@@ -818,7 +1055,12 @@ async function saveSettings() {
 async function resetSettings() {
   if (!confirm('Reset all settings to their defaults?')) return;
   try {
-    const defaults = { app_name:'CareCircle', default_centre:'', notify_birthdays:'true', notify_grants:'true', notify_checkins:'true', notify_email:'false', theme:'light', accent_colour:'#2e7d6b' };
+    const defaults = {
+      app_name: 'CareCircle', default_centre: '',
+      notify_birthdays: 'true', notify_grants: 'true',
+      notify_checkins: 'true', notify_email: 'false',
+      theme: 'light', accent_colour: '#2e7d6b'
+    };
     await api('/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(defaults) });
     document.documentElement.setAttribute('data-theme', 'light');
     document.documentElement.style.setProperty('--green', '#2e7d6b');
@@ -838,21 +1080,22 @@ async function loadAccount() {
 }
 
 function renderAccount(user) {
-  const ini     = initials(user.full_name);
-  const joined  = new Date(user.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const ini    = initials(user.full_name);
+  const joined = new Date(user.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
   const lastLog = user.last_login
     ? new Date(user.last_login).toLocaleString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     : 'First login';
+
   $('#accountContent').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
       <!-- Profile card -->
       <article class="panel setting-section">
-        <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:22px">
           <div style="width:64px;height:64px;border-radius:18px;background:#d9eeea;color:var(--green);font:800 22px Manrope;display:grid;place-items:center;flex-shrink:0">${esc(ini)}</div>
           <div>
-            <h2 style="font-size:18px;margin:0">${esc(user.full_name)}</h2>
-            <p style="color:var(--muted);margin:2px 0;font-size:12px">@${esc(user.username)}</p>
-            <span class="badge success">${esc(user.role)}</span>
+            <h2 style="font-size:18px;margin:0 0 3px">${esc(user.full_name)}</h2>
+            <p style="color:var(--muted);margin:0;font-size:12px">@${esc(user.username)}</p>
+            <span class="badge success" style="margin-top:6px">${esc(user.role)}</span>
           </div>
         </div>
         <div class="detail-grid">
@@ -870,13 +1113,13 @@ function renderAccount(user) {
         <form id="editProfileForm">
           <label style="display:grid;gap:6px;font-size:11px;font-weight:700;color:#527067;margin-bottom:14px">
             Full Name
-            <input type="text" id="ep_name" value="${esc(user.full_name)}" style="height:39px;border:1px solid var(--line);border-radius:8px;padding:0 10px;width:100%;outline:0">
+            <input type="text" id="ep_name" value="${esc(user.full_name)}">
           </label>
           <label style="display:grid;gap:6px;font-size:11px;font-weight:700;color:#527067;margin-bottom:18px">
             Email
-            <input type="email" id="ep_email" value="${esc(user.email)}" style="height:39px;border:1px solid var(--line);border-radius:8px;padding:0 10px;width:100%;outline:0">
+            <input type="email" id="ep_email" value="${esc(user.email)}">
           </label>
-          <button class="button" type="submit" style="width:100%">Save changes</button>
+          <button class="button" type="submit" style="width:100%">${icon('i-save')} Save changes</button>
         </form>
       </article>
 
@@ -886,18 +1129,15 @@ function renderAccount(user) {
         <p>Choose a strong password of at least 8 characters.</p>
         <form id="changePasswordForm">
           <label style="display:grid;gap:6px;font-size:11px;font-weight:700;color:#527067;margin-bottom:12px">
-            Current Password
-            <input type="password" id="cp_current" placeholder="Current password" style="height:39px;border:1px solid var(--line);border-radius:8px;padding:0 10px;width:100%;outline:0">
+            Current Password<input type="password" id="cp_current" placeholder="Current password">
           </label>
           <label style="display:grid;gap:6px;font-size:11px;font-weight:700;color:#527067;margin-bottom:12px">
-            New Password
-            <input type="password" id="cp_new" placeholder="New password (min 8 chars)" style="height:39px;border:1px solid var(--line);border-radius:8px;padding:0 10px;width:100%;outline:0">
+            New Password<input type="password" id="cp_new" placeholder="New password (min 8 chars)">
           </label>
           <label style="display:grid;gap:6px;font-size:11px;font-weight:700;color:#527067;margin-bottom:18px">
-            Confirm Password
-            <input type="password" id="cp_confirm" placeholder="Confirm new password" style="height:39px;border:1px solid var(--line);border-radius:8px;padding:0 10px;width:100%;outline:0">
+            Confirm Password<input type="password" id="cp_confirm" placeholder="Confirm new password">
           </label>
-          <button class="button" type="submit" style="width:100%">Change password</button>
+          <button class="button" type="submit" style="width:100%">${icon('i-key')} Change password</button>
         </form>
       </article>
 
@@ -924,7 +1164,7 @@ function renderAccount(user) {
       _currentUser = r.user;
       renderSidebarUser(_currentUser);
       toast('Profile updated.');
-      loadAccount(); // refresh display
+      loadAccount();
     } catch (e2) { toast(e2.message); }
   });
 
@@ -935,9 +1175,9 @@ function renderAccount(user) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          current_password:  $('#cp_current').value,
-          new_password:      $('#cp_new').value,
-          confirm_password:  $('#cp_confirm').value,
+          current_password: $('#cp_current').value,
+          new_password:     $('#cp_new').value,
+          confirm_password: $('#cp_confirm').value,
         }),
       });
       toast('Password changed successfully.');
@@ -949,6 +1189,16 @@ function renderAccount(user) {
     await fetch('/auth/logout', { method: 'POST' }).catch(() => {});
     location.href = '/login.html';
   });
+}
+
+/* ── Empty state helper ──────────────────────────────────────────────── */
+function emptyStateFull(iconId, title, sub, action) {
+  return `<div class="empty-state-full">
+    ${icon(iconId)}
+    <h3>${esc(title)}</h3>
+    <p>${sub}</p>
+    ${action || ''}
+  </div>`;
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -965,12 +1215,12 @@ function navigateTo(page) {
   window.scrollTo(0, 0);
   if (!_loaded[page]) {
     _loaded[page] = true;
-    if (page === 'caregivers')    loadCaregivers();
-    else if (page === 'alerts')   loadAlerts();
-    else if (page === 'analytics') loadAnalytics();
-    else if (page === 'import')   loadImportPreview();
-    else if (page === 'settings') loadSettings();
-    else if (page === 'account')  loadAccount();
+    if      (page === 'caregivers')     loadCaregivers();
+    else if (page === 'alerts')         loadAlerts();
+    else if (page === 'analytics')      loadAnalytics();
+    else if (page === 'import')         loadImportPreview();
+    else if (page === 'settings')       loadSettings();
+    else if (page === 'account')        loadAccount();
   }
 }
 
@@ -985,7 +1235,7 @@ document.addEventListener('click', e => {
   if (go) { navigateTo(go.dataset.go); return; }
 
   const toastBtn = e.target.closest('[data-toast]');
-  if (toastBtn) { e.preventDefault(); toast(toastBtn.dataset.toast); }
+  if (toastBtn) { e.preventDefault(); toast(toastBtn.dataset.toast); return; }
 
   const viewPerson = e.target.closest('.view-person');
   if (viewPerson) { openProfile(viewPerson.dataset.id); return; }
@@ -996,24 +1246,22 @@ document.addEventListener('click', e => {
   if (e.target.closest('.close-drawer') || e.target === $('#drawerBackdrop')) {
     $('#profileDrawer')?.classList.remove('open');
     $('#drawerBackdrop')?.classList.remove('open');
+    return;
   }
-  if (e.target.closest('.menu-btn')) $('.sidebar')?.classList.toggle('open');
-  if (e.target.closest('.tag'))      e.target.closest('.tag').classList.toggle('selected');
+  if (e.target.closest('.menu-btn')) { $('.sidebar')?.classList.toggle('open'); return; }
+  if (e.target.closest('.tag'))      { e.target.closest('.tag').classList.toggle('selected'); return; }
 
   const pageBtn = e.target.closest('.page-number[data-page]');
   if (pageBtn && !pageBtn.disabled) {
     cgState.page = parseInt(pageBtn.dataset.page);
     loadCaregivers();
+    return;
   }
 
-  // Settings buttons
-  if (e.target.id === 'saveSettingsBtn')  saveSettings();
-  if (e.target.id === 'resetSettingsBtn') resetSettings();
+  if (e.target.id === 'saveSettingsBtn')  { saveSettings(); return; }
+  if (e.target.id === 'resetSettingsBtn') { resetSettings(); return; }
+  if (e.target.closest('#staffCard'))     { navigateTo('account'); return; }
 
-  // Staff card → account
-  if (e.target.closest('#staffCard')) { navigateTo('account'); return; }
-
-  // Restore backup
   const restoreBtn = e.target.closest('.restore-backup');
   if (restoreBtn) {
     const name = restoreBtn.dataset.name;
@@ -1028,16 +1276,18 @@ document.addEventListener('click', e => {
   }
 });
 
+/* Caregiver search */
 $('#caregiverSearch')?.addEventListener('input', e => {
   clearTimeout(_searchTimer);
   _searchTimer = setTimeout(() => {
     cgState.search = e.target.value.trim();
     cgState.page = 1;
-    _loaded['caregivers'] = true;  // mark as loaded so navigateTo won't double-trigger
+    _loaded['caregivers'] = true;
     loadCaregivers();
-  }, 300);
+  }, 280);
 });
 
+/* Language filter */
 document.querySelector('select[aria-label="Filter by language"]')?.addEventListener('change', e => {
   cgState.language = e.target.value === 'All languages' ? '' : e.target.value;
   cgState.page = 1;
@@ -1045,7 +1295,11 @@ document.querySelector('select[aria-label="Filter by language"]')?.addEventListe
   loadCaregivers();
 });
 
-$('#workshopForm')?.addEventListener('submit', e => { e.preventDefault(); submitRecommendations(e.target); });
+/* Workshop form */
+$('#workshopForm')?.addEventListener('submit', e => {
+  e.preventDefault();
+  submitRecommendations(e.target);
+});
 
 /* ══════════════════════════════════════════════════════════════════════
    INIT
