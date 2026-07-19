@@ -4,17 +4,18 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from flask import Blueprint, jsonify, redirect, request, session
+from flask import Blueprint, jsonify, request, session
 
 from database import db
-from models import User
+from models import ROLE_STAFF, User
+from utils.auth import log_action
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
 
 @auth_bp.post("/signup")
 def signup():
-    """Register a new user account."""
+    """Register a new staff account (defaults to Staff role)."""
     data = request.get_json(silent=True) or {}
     full_name = str(data.get("full_name", "")).strip()
     username = str(data.get("username", "")).strip().lower()
@@ -33,7 +34,7 @@ def signup():
     if User.query.filter_by(email=email).first():
         return jsonify({"error": "An account with that email already exists."}), 409
 
-    user = User(full_name=full_name, username=username, email=email, role="Care Coordinator")
+    user = User(full_name=full_name, username=username, email=email, role=ROLE_STAFF, active=True)
     user.set_password(password)
     db.session.add(user)
     db.session.commit()
@@ -53,19 +54,25 @@ def login():
     user = User.query.filter_by(username=username).first()
     if not user or not user.check_password(password):
         return jsonify({"error": "Invalid username or password."}), 401
+    if not user.active:
+        return jsonify({"error": "This account has been deactivated. Please contact an administrator."}), 403
 
     user.last_login = datetime.utcnow()
     db.session.commit()
 
-    remember = bool(data.get("remember_me", False))
-    session.permanent = remember
+    session.permanent = True
     session["user_id"] = user.id
+    session["last_active"] = datetime.utcnow().isoformat()
+
+    log_action("user_login", record_id=user.id, detail=f"User '{user.username}' logged in")
+
     return jsonify({"message": "Login successful.", "user": user.to_dict()}), 200
 
 
 @auth_bp.post("/logout")
 def logout():
     """End the current user session."""
+    log_action("user_logout")
     session.clear()
     return jsonify({"message": "Logged out."}), 200
 
@@ -77,7 +84,7 @@ def me():
     if not user_id:
         return jsonify({"error": "Not authenticated.", "redirect": "/login.html"}), 401
     user = User.query.get(user_id)
-    if not user:
+    if not user or not user.active:
         session.clear()
         return jsonify({"error": "User not found.", "redirect": "/login.html"}), 401
     return jsonify(user.to_dict()), 200

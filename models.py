@@ -10,6 +10,18 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from database import db
 
+# ---------------------------------------------------------------------------
+# Role constants
+# ---------------------------------------------------------------------------
+
+ROLE_ADMINISTRATOR = "Administrator"
+ROLE_STAFF = "Staff"
+ALL_ROLES = {ROLE_ADMINISTRATOR, ROLE_STAFF}
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 def _parse_list(text: str | None) -> list[str]:
     """Parse a JSON array string, or return a list with the raw text as fallback."""
@@ -24,8 +36,12 @@ def _parse_list(text: str | None) -> list[str]:
     return [text]
 
 
+# ---------------------------------------------------------------------------
+# Models
+# ---------------------------------------------------------------------------
+
 class Caregiver(db.Model):
-    """A caregiver imported from the organisation's local directory."""
+    """A caregiver imported from the organisation's directory."""
 
     __tablename__ = "caregivers"
     __table_args__ = (db.UniqueConstraint("name", "phone", name="uq_caregiver_name_phone"),)
@@ -34,7 +50,7 @@ class Caregiver(db.Model):
     name = db.Column(db.String(255), nullable=False, index=True)
     phone = db.Column(db.String(64), nullable=False, index=True)
     situation = db.Column(db.Text, nullable=True)
-    grants = db.Column(db.Text, nullable=True)   # stored as JSON array string
+    grants = db.Column(db.Text, nullable=True)    # stored as JSON array string
     needs = db.Column(db.Text, nullable=True)     # stored as JSON array string
     hobbies = db.Column(db.Text, nullable=True)   # stored as JSON array string
     language = db.Column(db.String(512), nullable=True, index=True)  # stored as JSON array string
@@ -76,7 +92,7 @@ class Caregiver(db.Model):
 
 
 class User(db.Model):
-    """An authenticated user of the system."""
+    """An authenticated staff member of the system."""
 
     __tablename__ = "users"
 
@@ -85,9 +101,13 @@ class User(db.Model):
     username = db.Column(db.String(150), unique=True, nullable=False, index=True)
     email = db.Column(db.String(255), unique=True, nullable=False)
     password_hash = db.Column(db.String(512), nullable=False)
-    role = db.Column(db.String(50), nullable=False, default="Care Coordinator")
+    role = db.Column(db.String(50), nullable=False, default=ROLE_STAFF)
+    active = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     last_login = db.Column(db.DateTime, nullable=True)
+
+    # Relationships
+    audit_logs = db.relationship("AuditLog", back_populates="user", lazy="dynamic")
 
     def set_password(self, password: str) -> None:
         """Hash and store the password using Werkzeug."""
@@ -97,6 +117,10 @@ class User(db.Model):
         """Verify a plaintext password against the stored hash."""
         return check_password_hash(self.password_hash, password)
 
+    @property
+    def is_admin(self) -> bool:
+        return self.role == ROLE_ADMINISTRATOR
+
     def to_dict(self) -> dict[str, Any]:
         """Serialize this user for JSON responses (no password hash)."""
         return {
@@ -105,6 +129,7 @@ class User(db.Model):
             "username": self.username,
             "email": self.email,
             "role": self.role,
+            "active": self.active,
             "created_at": self.created_at.isoformat(),
             "last_login": self.last_login.isoformat() if self.last_login else None,
         }
@@ -118,3 +143,29 @@ class Setting(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     key = db.Column(db.String(100), unique=True, nullable=False, index=True)
     value = db.Column(db.Text, nullable=True)
+
+
+class AuditLog(db.Model):
+    """An immutable record of a significant action performed by a user."""
+
+    __tablename__ = "audit_logs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    action = db.Column(db.String(100), nullable=False, index=True)
+    record_id = db.Column(db.Integer, nullable=True)   # ID of the affected record, if any
+    detail = db.Column(db.Text, nullable=True)          # Human-readable extra context
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+
+    user = db.relationship("User", back_populates="audit_logs")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "username": self.user.username if self.user else None,
+            "action": self.action,
+            "record_id": self.record_id,
+            "detail": self.detail,
+            "timestamp": self.timestamp.isoformat(),
+        }

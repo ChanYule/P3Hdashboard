@@ -1,4 +1,4 @@
-"""Spreadsheet upload route."""
+"""Spreadsheet upload route — Administrator only."""
 
 from __future__ import annotations
 
@@ -9,11 +9,13 @@ from flask import Blueprint, current_app, jsonify, request
 from werkzeug.utils import secure_filename
 
 from services.excel_service import ImportValidationError, import_caregivers
+from utils.auth import log_action, require_admin
 
 upload_bp = Blueprint("upload", __name__)
 
 
 @upload_bp.post("/upload")
+@require_admin
 def upload_file():
     """Store a temporary spreadsheet locally and import its caregiver records."""
     file = request.files.get("file")
@@ -26,6 +28,10 @@ def upload_file():
     file.save(destination)
     try:
         result = import_caregivers(destination)
+        log_action(
+            "excel_import",
+            detail=f"Imported '{name}': {result.get('imported', 0)} new, {result.get('updated', 0)} updated",
+        )
         return jsonify(result), 201
     except ImportValidationError as exc:
         return jsonify({"error": str(exc)}), 400

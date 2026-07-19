@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, request, send_file
+from flask import Blueprint, jsonify, request
 
 import services.settings_service as svc
+from utils.auth import log_action, require_admin
 
 settings_bp = Blueprint("settings", __name__, url_prefix="/settings")
 
@@ -16,51 +17,58 @@ def get_settings():
 
 
 @settings_bp.post("")
+@require_admin
 def save_settings():
-    """Persist updated settings."""
+    """Persist updated settings (Administrator only)."""
     data = request.get_json(silent=True) or {}
     if not data:
         return jsonify({"error": "No settings provided."}), 400
     svc.save(data)
+    log_action("settings_changed", detail=f"Keys updated: {', '.join(data.keys())}")
     return jsonify({"message": "Settings saved."}), 200
 
 
-@settings_bp.get("/export")
-def export_db():
-    """Download the live SQLite database file."""
-    path = svc.export_database()
-    return send_file(path, as_attachment=True, download_name="caregivers_export.db")
-
-
 @settings_bp.post("/clear")
+@require_admin
 def clear_db():
-    """Delete all caregiver records."""
+    """Delete all caregiver records (Administrator only)."""
     count = svc.clear_caregivers()
+    log_action("caregivers_cleared", detail=f"Deleted {count} caregiver record(s)")
     return jsonify({"message": f"Cleared {count} caregiver record(s).", "cleared": count}), 200
 
 
+@settings_bp.get("/export")
+@require_admin
+def export_db():
+    """Database export is not available for PostgreSQL deployments."""
+    return jsonify({
+        "error": "Direct database export is not supported in the shared PostgreSQL deployment. "
+                 "Use your database provider's backup tools instead."
+    }), 501
+
+
 @settings_bp.post("/backup")
+@require_admin
 def create_backup():
-    """Create a timestamped backup of the database."""
-    name = svc.create_backup()
-    return jsonify({"message": f"Backup created: {name}", "name": name}), 201
+    """Database backup is not available for PostgreSQL deployments."""
+    return jsonify({
+        "error": "File-based backups are not supported in the shared PostgreSQL deployment. "
+                 "Use your database provider's backup tools instead."
+    }), 501
 
 
 @settings_bp.get("/backups")
+@require_admin
 def list_backups():
-    """List all existing database backups."""
-    return jsonify({"backups": svc.list_backups()})
+    """Database backup listing is not available for PostgreSQL deployments."""
+    return jsonify({"backups": []})
 
 
 @settings_bp.post("/restore")
+@require_admin
 def restore_backup():
-    """Restore the database from a named backup."""
-    data = request.get_json(silent=True) or {}
-    filename = str(data.get("filename", "")).strip()
-    if not filename:
-        return jsonify({"error": "Backup filename is required."}), 400
-    try:
-        svc.restore_backup(filename)
-        return jsonify({"message": f"Database restored from {filename}."}), 200
-    except (FileNotFoundError, ValueError) as exc:
-        return jsonify({"error": str(exc)}), 400
+    """Database restore is not available for PostgreSQL deployments."""
+    return jsonify({
+        "error": "File-based restore is not supported in the shared PostgreSQL deployment. "
+                 "Use your database provider's backup tools instead."
+    }), 501

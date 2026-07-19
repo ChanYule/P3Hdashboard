@@ -1,17 +1,19 @@
-"""Flask application factory for the local Caregiver Management System."""
+"""Flask application factory for the CareCircle Caregiver Management System."""
 
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from flask import Flask, jsonify, redirect, request, send_from_directory, session
+from flask import Flask, jsonify, redirect, request, session
 
 from config import BASE_DIR, Config
 from database import init_database
 from routes.account import account_bp
 from routes.alerts import alerts_bp
+from routes.audit import audit_bp
 from routes.auth import auth_bp
 from routes.caregivers import caregivers_bp
 from routes.dashboard import dashboard_bp
@@ -27,45 +29,71 @@ _STATIC_DIRS = {"assets", "icons", "images"}
 
 
 def create_app() -> Flask:
-    """Create and configure the Flask application and its local dependencies."""
+    """Create and configure the Flask application."""
     configure_logging(BASE_DIR)
     app = Flask(__name__)
     app.config.from_object(Config)
     Path(app.config["UPLOAD_FOLDER"]).mkdir(parents=True, exist_ok=True)
-    Path(BASE_DIR / "database").mkdir(exist_ok=True)
     init_database(app)
 
     blueprints = (
         auth_bp, account_bp, dashboard_bp, caregivers_bp,
-        upload_bp, alerts_bp, recommendations_bp, settings_bp,
+        upload_bp, alerts_bp, recommendations_bp, settings_bp, audit_bp,
     )
     for blueprint in blueprints:
         app.register_blueprint(blueprint)
 
+    _inactivity_timeout = timedelta(minutes=Config.SESSION_INACTIVITY_MINUTES)
+
     @app.before_request
     def check_auth():
-        """Redirect or reject unauthenticated requests."""
+        """Enforce authentication and session inactivity timeout."""
         path = request.path
+
         # Always allow public pages and auth endpoints
         if path in _PUBLIC_PATHS:
             return None
-        # Always allow static assets (css, js, fonts, etc.)
+
+        # Always allow static assets
         top = path.lstrip("/").split("/")[0]
-        if top in _STATIC_DIRS or any(path.endswith(ext) for ext in (".css", ".js", ".ico", ".png", ".jpg", ".woff2")):
+        if top in _STATIC_DIRS or any(
+            path.endswith(ext) for ext in (".css", ".js", ".ico", ".png", ".jpg", ".woff2")
+        ):
             return None
-        # Check session
-        if not session.get("user_id"):
-            if path == "/" or not path.startswith("/auth"):
-                if request.accept_mimetypes.accept_html and not path.startswith("/auth"):
-                    return redirect("/login.html")
-                return jsonify({"error": "Authentication required.", "redirect": "/login.html"}), 401
+
+        user_id = session.get("user_id")
+        if not user_id:
+            if request.accept_mimetypes.accept_html and not path.startswith("/auth"):
+                return redirect("/login.html")
+            return jsonify({"error": "Authentication required.", "redirect": "/login.html"}), 401
+
+        # Inactivity timeout check
+        last_active_raw = session.get("last_active")
+        if last_active_raw:
+            try:
+                last_active = datetime.fromisoformat(last_active_raw)
+                if datetime.utcnow() - last_active > _inactivity_timeout:
+                    session.clear()
+                    if request.accept_mimetypes.accept_html:
+                        return redirect("/login.html")
+                    return jsonify({
+                        "error": "Your session has expired due to inactivity.",
+                        "redirect": "/login.html",
+                    }), 401
+            except ValueError:
+                pass  # malformed timestamp — let the request through and refresh it
+
+        # Refresh last-active timestamp on every authenticated request
+        session["last_active"] = datetime.utcnow().isoformat()
 
     @app.route("/")
     def index():
+        from flask import send_from_directory
         return send_from_directory(BASE_DIR, "index.html")
 
     @app.route("/<path:filename>")
     def static_files(filename):
+        from flask import send_from_directory
         top = filename.split("/")[0]
         if filename in _STATIC_FILES or top in _STATIC_DIRS:
             return send_from_directory(BASE_DIR, filename)
@@ -82,7 +110,9 @@ def create_app() -> Flask:
 def _start_scheduler(app: Flask) -> None:
     """Schedule the daily birthday check without blocking application startup."""
     scheduler = BackgroundScheduler(daemon=True)
-    scheduler.add_job(lambda: _daily_birthday_job(app), "cron", hour=8, minute=0, id="birthday_check")
+    scheduler.add_job(
+        lambda: _daily_birthday_job(app), "cron", hour=8, minute=0, id="birthday_check"
+    )
     scheduler.start()
     app.extensions["scheduler"] = scheduler
 
@@ -95,6 +125,7 @@ def _daily_birthday_job(app: Flask) -> None:
 
 def _register_error_handlers(app: Flask) -> None:
     """Return JSON errors for common API failures."""
+
     @app.errorhandler(413)
     def file_too_large(error: Exception):
         return jsonify({"error": "File exceeds the configured upload size limit."}), 413
