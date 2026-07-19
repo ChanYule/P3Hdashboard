@@ -1,0 +1,98 @@
+=========================================================
+UPDATED SYSTEM ARCHITECTURE
+=========================================================
+
+The application is now a shared web application used by multiple staff members.
+
+Replace the previous local-only architecture.
+
+Use a centralized SQL database (preferably PostgreSQL, or MySQL if PostgreSQL is unavailable).
+
+All caregiver records, reminders, recommendations, settings and user accounts should be stored in this shared database.
+
+=========================================================
+AUTHENTICATION
+=========================================================
+
+Implement secure user authentication.
+
+Every staff member should have their own account.
+
+Users must log in before accessing any page.
+
+Protect all routes except:
+
+• Login
+• Forgot Password (future)
+• Health Check (optional)
+
+Passwords must be securely hashed.
+
+Never store plain-text passwords.
+
+=========================================================
+USER MANAGEMENT
+=========================================================
+
+Create a User table with fields including:
+
+• Full Name
+• Username
+• Email
+• Password Hash
+• Role
+• Last Login
+• Date Created
+• Active Status
+
+=========================================================
+ROLE-BASED ACCESS
+=========================================================
+
+Support at least two roles:
+
+Administrator
+• Manage users
+• Import Excel
+• Edit caregiver records
+• Configure settings
+• Manage backups
+
+Staff
+• View caregivers
+• Edit caregiver information
+• View dashboards
+• Manage alerts
+• Generate recommendations
+
+The architecture should make it easy to add more roles later.
+
+=========================================================
+AUDIT LOG
+=========================================================
+
+Record important actions such as:
+
+• User logged in
+• Excel imported
+• Caregiver edited
+• Caregiver deleted
+• Alert marked complete
+• Settings changed
+
+Each audit entry should include:
+
+• User
+• Action
+• Timestamp
+• Record affected (if applicable)
+
+=========================================================
+DATA SECURITY
+=========================================================
+
+The application should require authentication before displaying any caregiver data.
+
+Only authenticated users should be able to access the shared database.
+
+Implement proper session management with automatic session expiry after a period of inactivity.
