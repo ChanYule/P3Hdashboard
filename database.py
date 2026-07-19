@@ -15,6 +15,9 @@ def init_database(app: object) -> None:
     """Initialise the database, create all tables, and seed defaults."""
     db.init_app(app)
     with app.app_context():
+        # Import every model so SQLAlchemy's metadata is fully populated
+        # before create_all() runs, regardless of which routes are loaded.
+        import models  # noqa: F401
         db.create_all()
         _seed_default_user()
 

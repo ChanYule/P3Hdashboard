@@ -49,3 +49,9 @@ class Config:
     SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
     SMTP_FROM = os.getenv("SMTP_FROM")
     SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
+    SMTP_USE_SSL = os.getenv("SMTP_USE_SSL", "false").lower() == "true"
+
+    # Email notifications
+    # Single address for now; comma-separate for multiple recipients
+    NOTIFICATION_EMAIL = os.getenv("NOTIFICATION_EMAIL", "")
+    APP_BASE_URL = os.getenv("APP_BASE_URL", "http://127.0.0.1:5000")

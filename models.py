@@ -145,6 +145,21 @@ class Setting(db.Model):
     value = db.Column(db.Text, nullable=True)
 
 
+class EmailNotification(db.Model):
+    """Record of an email notification sent, used to prevent same-day duplicates."""
+
+    __tablename__ = "email_notifications"
+
+    id = db.Column(db.Integer, primary_key=True)
+    caregiver_id = db.Column(db.Integer, nullable=True, index=True)  # nullable for test emails
+    alert_type = db.Column(db.String(50), nullable=False, index=True)
+    recipient = db.Column(db.String(512), nullable=False)
+    sent_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    date_label = db.Column(db.Date, nullable=False, index=True)  # the calendar day this covers
+    success = db.Column(db.Boolean, nullable=False, default=True)
+    error = db.Column(db.Text, nullable=True)
+
+
 class AuditLog(db.Model):
     """An immutable record of a significant action performed by a user."""
 

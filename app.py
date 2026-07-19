@@ -17,6 +17,7 @@ from routes.audit import audit_bp
 from routes.auth import auth_bp
 from routes.caregivers import caregivers_bp
 from routes.dashboard import dashboard_bp
+from routes.email import email_bp
 from routes.recommendations import recommendations_bp
 from routes.settings_route import settings_bp
 from routes.upload import upload_bp
@@ -38,7 +39,8 @@ def create_app() -> Flask:
 
     blueprints = (
         auth_bp, account_bp, dashboard_bp, caregivers_bp,
-        upload_bp, alerts_bp, recommendations_bp, settings_bp, audit_bp,
+        upload_bp, alerts_bp, recommendations_bp, settings_bp,
+        audit_bp, email_bp,
     )
     for blueprint in blueprints:
         app.register_blueprint(blueprint)
@@ -101,26 +103,50 @@ def create_app() -> Flask:
 
     _register_error_handlers(app)
     _start_scheduler(app)
+
     with app.app_context():
+        _check_email_service()
         alerts = birthday_alerts()
-        logging.getLogger(__name__).info("Startup birthday check completed: %d alerts", len(alerts))
+        logging.getLogger(__name__).info(
+            "Startup birthday check completed: %d alerts", len(alerts)
+        )
+
     return app
 
 
+def _check_email_service() -> None:
+    """Verify SMTP connectivity at startup and log the outcome."""
+    from services.email_service import email_service_from_config
+    svc = email_service_from_config(Config)
+    if svc is None:
+        logging.getLogger(__name__).info(
+            "⚠ Email service unavailable — SMTP is not configured "
+            "(set SMTP_HOST, SMTP_USERNAME, SMTP_PASSWORD, SMTP_FROM to enable)"
+        )
+        return
+    svc.check_connection()
+
+
 def _start_scheduler(app: Flask) -> None:
-    """Schedule the daily birthday check without blocking application startup."""
+    """Schedule the daily notification job at 08:00."""
     scheduler = BackgroundScheduler(daemon=True)
     scheduler.add_job(
-        lambda: _daily_birthday_job(app), "cron", hour=8, minute=0, id="birthday_check"
+        lambda: _daily_notification_job(app),
+        "cron", hour=8, minute=0,
+        id="daily_notifications",
     )
     scheduler.start()
     app.extensions["scheduler"] = scheduler
 
 
-def _daily_birthday_job(app: Flask) -> None:
-    """Run the daily birthday check in the correct Flask context."""
+def _daily_notification_job(app: Flask) -> None:
+    """Run all alert generation and email delivery inside the Flask app context."""
     with app.app_context():
-        birthday_alerts()
+        from services.notification_service import run_daily_notifications
+        summary = run_daily_notifications(app)
+        logging.getLogger(__name__).info(
+            "Daily notification job complete — %s", summary
+        )
 
 
 def _register_error_handlers(app: Flask) -> None:

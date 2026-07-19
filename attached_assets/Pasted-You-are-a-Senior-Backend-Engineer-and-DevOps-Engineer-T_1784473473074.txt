@@ -1,0 +1,333 @@
+You are a Senior Backend Engineer and DevOps Engineer.
+
+The CareCircle Caregiver Management System already has an Alert Service that generates birthday reminders and grant follow-up reminders.
+
+Currently, alerts are only visible inside the application.
+
+Your task is to implement a production-ready email notification system so staff automatically receive email reminders without needing to log into the application.
+
+Do NOT redesign the frontend.
+
+Focus on backend functionality, reliability, security and maintainability.
+
+=========================================================
+OBJECTIVE
+=========================================================
+
+Enable automatic email notifications for caregiver alerts.
+
+Staff should receive email notifications for:
+
+• Caregiver birthdays
+• Grant follow-up reminders
+• Monthly check-in reminders (if applicable)
+
+The system should continue generating in-app alerts while also sending email notifications.
+
+=========================================================
+EMAIL CONFIGURATION
+=========================================================
+
+All SMTP configuration must be stored securely using environment variables.
+
+Do NOT hardcode credentials.
+
+Update the following files where necessary:
+
+services/email_service.py
+services/alert_service.py
+app.py
+.env.example
+
+=========================================================
+ENVIRONMENT VARIABLES
+=========================================================
+
+Add the following variables to .env.example
+
+SMTP_HOST=
+
+SMTP_PORT=
+
+SMTP_USERNAME=
+
+SMTP_PASSWORD=
+
+SMTP_FROM=
+
+SMTP_USE_TLS=True
+
+SMTP_USE_SSL=False
+
+APP_BASE_URL=http://127.0.0.1:5000
+
+=========================================================
+EMAIL SERVICE
+=========================================================
+
+Create or improve EmailService.
+
+Responsibilities:
+
+• Establish SMTP connection
+• Authenticate
+• Send HTML emails
+• Send plain text fallback
+• Handle connection failures
+• Retry failed sends where appropriate
+• Log all email activity
+• Return meaningful success/failure responses
+
+Do not crash the application if email delivery fails.
+
+=========================================================
+EMAIL DESIGN
+=========================================================
+
+Create professional HTML email templates.
+
+Use the CareCircle branding.
+
+Include:
+
+Application name
+
+Alert type
+
+Caregiver name
+
+Reason for notification
+
+Relevant dates
+
+Action required
+
+Link back to the application
+
+Example
+
+-------------------------------------------------
+
+CareCircle
+
+Caregiver Birthday Reminder
+
+Today is:
+
+Mdm Lim's Birthday
+
+Please remember to wish the caregiver a happy birthday and update the interaction record after contacting them.
+
+Open CareCircle
+
+-------------------------------------------------
+
+Likewise for Grant Follow-ups and Monthly Check-ins.
+
+=========================================================
+AUTOMATIC DAILY JOB
+=========================================================
+
+Review app.py
+
+Locate
+
+_daily_birthday_job()
+
+Update the scheduler so that every day at
+
+08:00
+
+the system will:
+
+Generate all alerts due today
+
+Retrieve all pending alerts
+
+Send email notifications
+
+Log successful deliveries
+
+Log failures
+
+Prevent duplicate emails from being sent on the same day
+
+=========================================================
+ALERT TYPES
+=========================================================
+
+Birthday Alert
+
+Send on caregiver's birthday.
+
+Subject
+
+🎂 Caregiver Birthday Reminder – <Caregiver Name>
+
+Grant Follow-up
+
+Send when follow-up is due.
+
+Subject
+
+📋 Grant Follow-up Required – <Caregiver Name>
+
+Monthly Check-in
+
+Send when monthly follow-up is due.
+
+Subject
+
+📞 Monthly Caregiver Check-in Reminder – <Caregiver Name>
+
+=========================================================
+EMAIL RECIPIENTS
+=========================================================
+
+Initially, send all notifications to a configurable staff email address.
+
+Use
+
+NOTIFICATION_EMAIL=
+
+stored in environment variables.
+
+Design the system so it can later support:
+
+• Multiple recipients
+• Different recipients by centre
+• User notification preferences
+
+=========================================================
+TESTING
+=========================================================
+
+Create a test route
+
+/email/test
+
+or
+
+/admin/test-email
+
+When accessed,
+
+send a test email.
+
+Display
+
+Success
+
+or
+
+Detailed error message
+
+Also perform an email service check when the application starts.
+
+If SMTP is configured correctly
+
+Log
+
+✓ Email service connected successfully
+
+Otherwise
+
+Log
+
+⚠ Email service unavailable
+
+Continue running the application.
+
+=========================================================
+LOGGING
+=========================================================
+
+Log
+
+Connection established
+
+Authentication successful
+
+Email queued
+
+Email sent
+
+Email failed
+
+SMTP timeout
+
+Authentication failure
+
+Unexpected exceptions
+
+Use Python logging.
+
+=========================================================
+SECURITY
+=========================================================
+
+Never expose SMTP credentials.
+
+Never log passwords.
+
+Never hardcode credentials.
+
+Always read configuration from environment variables.
+
+=========================================================
+ERROR HANDLING
+=========================================================
+
+If SMTP is unavailable
+
+Continue generating in-app alerts.
+
+Do not stop the scheduler.
+
+Do not crash Flask.
+
+Display useful logs.
+
+=========================================================
+FUTURE EXTENSIBILITY
+=========================================================
+
+Design EmailService to support future notification channels:
+
+SMS
+
+WhatsApp
+
+Microsoft Teams
+
+Push Notifications
+
+The notification service should be modular so additional channels can be added without rewriting alert generation logic.
+
+=========================================================
+ACCEPTANCE CRITERIA
+=========================================================
+
+✔ SMTP settings are configurable using environment variables
+
+✔ Email service automatically connects at application startup
+
+✔ Daily scheduled job runs every morning at 08:00
+
+✔ Birthday reminders generate and send emails automatically
+
+✔ Grant follow-up reminders generate and send emails automatically
+
+✔ Monthly check-in reminders generate and send emails automatically
+
+✔ HTML email templates are professional and branded
+
+✔ Duplicate emails are prevented
+
+✔ Test email endpoint is available
+
+✔ Failures are logged without crashing the application
+
+✔ In-app alerts continue to function even if email delivery fails
+
+✔ Code follows clean architecture principles with reusable services and proper error handling.
